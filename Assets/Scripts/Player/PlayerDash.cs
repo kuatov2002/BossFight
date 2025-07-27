@@ -8,20 +8,20 @@ public class PlayerDash : MonoBehaviour
     public float dashDuration = 0.2f;
     public float dashCooldown = 1f;
 
-    private PlayerMovement playerMovement;
-    private bool isDashing = false;
-    private float dashTimer = 0f;
-    private float dashCooldownTimer = 0f;
-    private Vector3 dashDirection;
+    private PlayerMovement _playerMovement;
+    private bool _isDashing = false;
+    private float _dashTimer = 0f;
+    private float _dashCooldownTimer = 0f;
+    private Vector3 _dashDirection;
 
     void Start()
     {
-        playerMovement = GetComponent<PlayerMovement>();
+        _playerMovement = GetComponent<PlayerMovement>();
     }
 
     void Update()
     {
-        if (isDashing)
+        if (_isDashing)
         {
             PerformDashMovement();
         }
@@ -33,48 +33,48 @@ public class PlayerDash : MonoBehaviour
     {
         if (!CanDash()) return;
 
-        isDashing = true;
-        dashTimer = dashDuration;
-        dashCooldownTimer = dashCooldown;
+        _isDashing = true;
+        _dashTimer = dashDuration;
+        _dashCooldownTimer = dashCooldown;
 
         // Определяем направление дэша
         if (inputDirection != Vector3.zero)
         {
-            dashDirection = inputDirection;
+            _dashDirection = inputDirection;
         }
         else
         {
             // Если нет направления, используем направление камеры
-            dashDirection = Camera.main.transform.forward;
+            _dashDirection = Camera.main.transform.forward;
         }
 
-        dashDirection.y = 0;
-        dashDirection.Normalize();
+        _dashDirection.y = 0;
+        _dashDirection.Normalize();
 
         // Применяем силу дэша
-        Vector3 dashVelocity = dashDirection * dashForce;
+        Vector3 dashVelocity = _dashDirection * dashForce;
         dashVelocity.y = 0;
         
-        playerMovement.StartDash(dashVelocity);
+        _playerMovement.StartDash(dashVelocity);
     }
 
     void PerformDashMovement()
     {
-        dashTimer -= Time.deltaTime;
-        if (dashTimer <= 0)
+        _dashTimer -= Time.deltaTime;
+        if (_dashTimer <= 0)
         {
-            isDashing = false;
-            playerMovement.EndDash();
+            _isDashing = false;
+            _playerMovement.EndDash();
         }
     }
 
     void UpdateTimers()
     {
-        if (dashCooldownTimer > 0)
-            dashCooldownTimer -= Time.deltaTime;
+        if (_dashCooldownTimer > 0)
+            _dashCooldownTimer -= Time.deltaTime;
     }
 
-    public bool IsDashing() => isDashing;
-    public bool CanDash() => dashCooldownTimer <= 0 && !isDashing;
-    public float GetDashCooldownRemaining() => Mathf.Max(0, dashCooldownTimer);
+    public bool IsDashing() => _isDashing;
+    public bool CanDash() => _dashCooldownTimer <= 0 && !_isDashing;
+    public float GetDashCooldownRemaining() => Mathf.Max(0, _dashCooldownTimer);
 }

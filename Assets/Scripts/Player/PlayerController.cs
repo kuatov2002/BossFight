@@ -9,12 +9,12 @@ public class PlayerController : MonoBehaviour
     public PlayerDash dash;
     public PlayerAttack attack;
 
-    private PlayerInputActions playerControls;
-    private Vector2 moveInput;
+    private PlayerInputActions _playerControls;
+    private Vector2 _moveInput;
 
     void Awake()
     {
-        playerControls = new PlayerInputActions();
+        _playerControls = new PlayerInputActions();
     }
 
     void Start()
@@ -28,11 +28,11 @@ public class PlayerController : MonoBehaviour
         if (attack == null) Debug.LogError("PlayerAttack не найден!");
 
         // Подписываемся на события ввода
-        playerControls.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
-        playerControls.Player.Move.canceled += ctx => moveInput = Vector2.zero;
-        playerControls.Player.Jump.performed += ctx => movement.Jump();
-        playerControls.Player.Attack.performed += ctx => attack.PerformAttack();
-        playerControls.Player.Dash.performed += ctx => dash.PerformDash(new Vector3(moveInput.x, 0, moveInput.y));
+        _playerControls.Player.Move.performed += ctx => _moveInput = ctx.ReadValue<Vector2>();
+        _playerControls.Player.Move.canceled += ctx => _moveInput = Vector2.zero;
+        _playerControls.Player.Jump.performed += ctx => movement.Jump();
+        _playerControls.Player.Attack.performed += ctx => attack.PerformAttack();
+        _playerControls.Player.Dash.performed += ctx => dash.PerformDash(new Vector3(_moveInput.x, 0, _moveInput.y));
     }
 
     void Update()
@@ -42,17 +42,17 @@ public class PlayerController : MonoBehaviour
 
     void HandleMovement()
     {
-        Vector3 moveVector = new Vector3(moveInput.x, 0, moveInput.y);
+        Vector3 moveVector = new Vector3(_moveInput.x, 0, _moveInput.y);
         movement.HandleMovement(moveVector);
     }
 
     void OnEnable()
     {
-        playerControls.Player.Enable();
+        _playerControls.Player.Enable();
     }
 
     void OnDisable()
     {
-        playerControls.Player.Disable();
+        _playerControls.Player.Disable();
     }
 }

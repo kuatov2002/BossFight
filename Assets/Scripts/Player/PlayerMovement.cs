@@ -8,19 +8,19 @@ public class PlayerMovement : MonoBehaviour
     public float jumpForce = 8f;
     public float gravity = 20f;
 
-    private CharacterController controller;
-    private Vector3 moveDirection;
-    private bool isDashing = false;
+    private CharacterController _controller;
+    private Vector3 _moveDirection;
+    private bool _isDashing = false;
 
     void Start()
     {
-        controller = GetComponent<CharacterController>();
+        _controller = GetComponent<CharacterController>();
     }
 
     public void HandleMovement(Vector3 input)
     {
         // Если не в процессе дэша, обрабатываем обычное движение
-        if (!isDashing)
+        if (!_isDashing)
         {
             if (input.magnitude > 1f)
                 input.Normalize();
@@ -34,46 +34,46 @@ public class PlayerMovement : MonoBehaviour
             right.Normalize();
 
             Vector3 move = (forward * input.z + right * input.x).normalized;
-            moveDirection.x = move.x * moveSpeed;
-            moveDirection.z = move.z * moveSpeed;
+            _moveDirection.x = move.x * moveSpeed;
+            _moveDirection.z = move.z * moveSpeed;
         }
 
         ApplyGravity();
-        controller.Move(moveDirection * Time.deltaTime);
+        _controller.Move(_moveDirection * Time.deltaTime);
     }
 
     public void Jump()
     {
-        if (controller.isGrounded)
+        if (_controller.isGrounded)
         {
-            moveDirection.y = jumpForce;
+            _moveDirection.y = jumpForce;
         }
     }
 
     void ApplyGravity()
     {
-        if (!controller.isGrounded)
+        if (!_controller.isGrounded)
         {
-            moveDirection.y -= gravity * Time.deltaTime;
+            _moveDirection.y -= gravity * Time.deltaTime;
         }
-        else if (moveDirection.y < 0)
+        else if (_moveDirection.y < 0)
         {
-            moveDirection.y = -0.1f;
+            _moveDirection.y = -0.1f;
         }
     }
 
     // Методы для управления дэшем
     public void StartDash(Vector3 dashVelocity)
     {
-        moveDirection = dashVelocity;
-        isDashing = true;
+        _moveDirection = dashVelocity;
+        _isDashing = true;
     }
 
     public void EndDash()
     {
-        isDashing = false;
+        _isDashing = false;
     }
 
-    public bool IsGrounded() => controller.isGrounded;
-    public Vector3 GetMoveDirection() => moveDirection;
+    public bool IsGrounded() => _controller.isGrounded;
+    public Vector3 GetMoveDirection() => _moveDirection;
 }

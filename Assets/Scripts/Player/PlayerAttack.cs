@@ -8,19 +8,19 @@ public class PlayerAttack : MonoBehaviour
     public LayerMask enemyLayer;
     public float attackCooldown = 0.5f;
 
-    private float attackCooldownTimer = 0f;
+    private float _attackCooldownTimer = 0f;
 
     void Update()
     {
-        if (attackCooldownTimer > 0)
-            attackCooldownTimer -= Time.deltaTime;
+        if (_attackCooldownTimer > 0)
+            _attackCooldownTimer -= Time.deltaTime;
     }
 
     public void PerformAttack()
     {
         if (!CanAttack()) return;
 
-        attackCooldownTimer = attackCooldown;
+        _attackCooldownTimer = attackCooldown;
 
         // Позиция атаки - немного впереди игрока
         Vector3 attackPosition = transform.position + transform.forward * 1f;
@@ -35,7 +35,7 @@ public class PlayerAttack : MonoBehaviour
         }
     }
 
-    public bool CanAttack() => attackCooldownTimer <= 0;
+    public bool CanAttack() => _attackCooldownTimer <= 0;
 
     // Визуализация радиуса атаки в редакторе
     void OnDrawGizmosSelected()
