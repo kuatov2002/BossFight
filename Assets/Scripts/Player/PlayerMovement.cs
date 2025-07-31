@@ -7,14 +7,22 @@ public class PlayerMovement : MonoBehaviour
     public float moveSpeed = 6f;
     public float jumpForce = 8f;
     public float gravity = 20f;
-
+    
+    [SerializeField] private Transform followTarget;
+    
     private CharacterController _controller;
     private Vector3 _moveDirection;
     private bool _isDashing = false;
-
+    private Vector2 _look;
+    
     void Start()
     {
         _controller = GetComponent<CharacterController>();
+    }
+
+    private void Update()
+    {
+        HandleMouseLook();
     }
 
     public void HandleMovement(Vector3 input)
@@ -42,6 +50,33 @@ public class PlayerMovement : MonoBehaviour
         _controller.Move(_moveDirection * Time.deltaTime);
     }
 
+    private void HandleMouseLook()
+    {
+        _look.x = Input.GetAxis("Mouse X");
+        _look.y = -Input.GetAxis("Mouse Y");
+        
+        
+        // Standard mouse look
+        followTarget.rotation *= Quaternion.AngleAxis(_look.x, Vector3.up);
+        followTarget.rotation *= Quaternion.AngleAxis(_look.y, Vector3.right);
+
+        var angles = followTarget.localEulerAngles;
+        angles.z = 0;
+
+        var angle = followTarget.localEulerAngles.x;
+        if (angle is > 180 and < 300)
+        {
+            angles.x = 300;
+        }
+        else if (angle is < 180 and > 70)
+        {
+            angles.x = 70;
+        }
+
+        followTarget.localEulerAngles = angles;
+        transform.rotation = Quaternion.Euler(0, followTarget.rotation.eulerAngles.y, 0);
+        followTarget.localEulerAngles = new Vector3(angles.x, 0, 0);
+    }
     public void Jump()
     {
         if (_controller.isGrounded)
