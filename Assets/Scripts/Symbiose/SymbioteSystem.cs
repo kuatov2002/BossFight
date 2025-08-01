@@ -1,6 +1,8 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.Serialization;
 
 public class SymbioteSystem : MonoBehaviour
 {
@@ -8,23 +10,16 @@ public class SymbioteSystem : MonoBehaviour
     public BodySlot[] bodySlots;
     
     [Header("References")]
-    public PlayerStats playerStats;
-    
+    [SerializeField] private PlayerStats playerStats;
+    [SerializeField] private PlayerMovement playerMovement;
+    [SerializeField] private PlayerAttack playerAttack;
     private void Awake()
     {
         InitializeBodySlots();
     }
-    
+
     private void InitializeBodySlots()
     {
-        /*bodySlots = new BodySlot[6];
-        bodySlots[0] = new BodySlot(BodySlot.SlotType.Head);
-        bodySlots[1] = new BodySlot(BodySlot.SlotType.LeftArm);
-        bodySlots[2] = new BodySlot(BodySlot.SlotType.RightArm);
-        bodySlots[3] = new BodySlot(BodySlot.SlotType.Back);
-        bodySlots[4] = new BodySlot(BodySlot.SlotType.LeftLeg);
-        bodySlots[5] = new BodySlot(BodySlot.SlotType.RightLeg);*/
-        
         List<SymbiotePart> equippedParts = new List<SymbiotePart>();
         
         // Собираем все экипированные части
@@ -52,18 +47,6 @@ public class SymbioteSystem : MonoBehaviour
         // Экипируем часть
         targetSlot.EquipPart(part);
         
-        // Применяем эффекты
-        ApplySymbioteEffects();
-        
-        Debug.Log($"Equipped {part.partName} to {part.slotType}");
-        return true;
-    }
-    
-    private void ApplySymbioteEffects()
-    {
-        // Сброс эффектов
-        playerStats.ResetModifiers();
-        
         List<SymbiotePart> equippedParts = new List<SymbiotePart>();
         
         // Собираем все экипированные части
@@ -77,16 +60,21 @@ public class SymbioteSystem : MonoBehaviour
         
         // Проверяем комбинации
         CheckCombinations(equippedParts);
+        
+        Debug.Log($"Equipped {part.partName} to {part.slotType}");
+        return true;
     }
     
-    private void CheckCombinations(List<SymbiotePart> parts)
+    private void CheckCombinations(IEnumerable<SymbiotePart> parts)
     {
-        bool hasCangaroo = parts.Any(p => p.mobeType == BodySlot.MobeType.Cangaroo);
-        if (hasCangaroo)
+        int kangarooLegs = parts.Count(p => p.mobeType == BodySlot.MobeType.Cangaroo && 
+                                            (p.slotType == BodySlot.SlotType.LeftLeg || 
+                                             p.slotType == BodySlot.SlotType.RightLeg));
+        playerMovement.jumpForce = 8 + 2 * kangarooLegs;
+        if (kangarooLegs >= 2)
         {
-            // Применяем специальный эффект
-            //playerStats.canCreateSteamTrail = true;
-            Debug.Log("Комбинация активирована: Супер прыжок");
+            playerMovement.jumpCount = 2;
+            Debug.Log("Комбинация активирована: двойной прыжок");
         }
         
         // Добавьте больше комбинаций по аналогии
@@ -105,7 +93,19 @@ public class SymbioteSystem : MonoBehaviour
         if (slot != null)
         {
             slot.RemovePart();
-            ApplySymbioteEffects();
+            List<SymbiotePart> equippedParts = new List<SymbiotePart>();
+        
+            // Собираем все экипированные части
+            foreach (BodySlot bodySlot in bodySlots)
+            {
+                if (bodySlot.isOccupied)
+                {
+                    equippedParts.Add(slot.currentPart);
+                }
+            }
+        
+            // Проверяем комбинации
+            CheckCombinations(equippedParts);
         }
     }
 }
