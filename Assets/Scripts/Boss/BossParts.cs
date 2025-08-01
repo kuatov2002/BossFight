@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 public class BossParts : MonoBehaviour
 {
-    [FormerlySerializedAs("_bossParts")]
     [Header("Boss Parts")]
     [SerializeField] private List<SymbiotePart> bossParts;
     [SerializeField] private SymbioteSystem playerSymbioteSystem;

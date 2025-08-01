@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
@@ -16,7 +17,8 @@ public class PlayerMovement : MonoBehaviour
     private bool _isDashing = false;
     private Vector2 _look;
     private int _currentJumpCount; // Текущее количество доступных прыжков
-
+    private bool _canShootWeb = true;
+    private bool _isWebDashing = false;
     void Start()
     {
         _controller = GetComponent<CharacterController>();
@@ -27,6 +29,11 @@ public class PlayerMovement : MonoBehaviour
     {
         HandleMouseLook();
 
+        if (Input.GetKeyDown(KeyCode.LeftShift))
+        {
+            ShootWeb();
+        }
+        
         // Пример вызова прыжка (можно убрать, если вызывается из другого скрипта)
         // if (Input.GetButtonDown("Jump"))
         //     Jump();
@@ -113,6 +120,65 @@ public class PlayerMovement : MonoBehaviour
     public void EndDash()
     {
         _isDashing = false;
+    }
+
+    public void EnableWebShooting(bool enable)
+    {
+        _canShootWeb = enable;
+        if (!enable && _isWebDashing)
+        {
+            StopWebDash();
+        }
+        Debug.Log($"Web shooting: {(enable ? "Enabled" : "Disabled")}");
+    }
+
+    private void ShootWeb()
+    {
+        Vector3 rayOrigin = Camera.main.transform.position;
+        Vector3 rayDirection = Camera.main.transform.forward;
+    
+        if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, 100f))
+        {
+            Vector3 directionToHit = (hit.point - transform.position).normalized;
+            float distance = Vector3.Distance(hit.point, transform.position);
+        
+            // Скорость постоянная, время зависит от расстояния
+            float webSpeed = 30f;
+            float travelTime = distance / webSpeed;
+        
+            Vector3 impulse = directionToHit * webSpeed;
+            StartDash(impulse);
+            _isWebDashing = true;
+        
+            Invoke(nameof(StopWebDash), travelTime);
+        }
+    }
+    private void StopWebDash()
+    {
+        if (_isWebDashing)
+        {
+            // Плавное торможение вместо резкой остановки
+            StartCoroutine(SmoothStopWebDash());
+            CancelInvoke(nameof(StopWebDash));
+        }
+    }
+
+    private IEnumerator SmoothStopWebDash()
+    {
+        Vector3 initialVelocity = _moveDirection;
+        float smoothTime = 0.3f;
+        float elapsedTime = 0f;
+    
+        while (elapsedTime < smoothTime)
+        {
+            _moveDirection = Vector3.Lerp(initialVelocity, Vector3.zero, 
+                elapsedTime / smoothTime);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+    
+        EndDash();
+        _isWebDashing = false;
     }
 
     public bool IsGrounded() => _controller.isGrounded;

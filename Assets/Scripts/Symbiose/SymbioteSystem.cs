@@ -76,17 +76,40 @@ public class SymbioteSystem : MonoBehaviour
     
     private void CheckCombinations(IEnumerable<SymbiotePart> parts)
     {
-        int kangarooLegs = parts.Count(p => p.mobeType == BodySlot.MobeType.Cangaroo && 
-                                            (p.slotType == BodySlot.SlotType.LeftLeg || 
-                                             p.slotType == BodySlot.SlotType.RightLeg));
+        var partList = parts.ToList();
+
+        // Проверка на кенгуру-ноги (уже была)
+        int kangarooLegs = partList.Count(p => p.mobeType == BodySlot.MobeType.Cangaroo && 
+                                               (p.slotType == BodySlot.SlotType.LeftLeg || 
+                                                p.slotType == BodySlot.SlotType.RightLeg));
+    
         playerMovement.jumpForce = 8 + 2 * kangarooLegs;
+
         if (kangarooLegs >= 2)
         {
             playerMovement.jumpCount = 2;
             Debug.Log("Комбинация активирована: двойной прыжок");
         }
-        
-        // Добавьте больше комбинаций по аналогии
+        else
+        {
+            playerMovement.jumpCount = 1; // сброс, если комбинация неактивна
+        }
+
+        // 🔍 Новая проверка: обе руки - паучьи
+        bool hasSpiderLeftArm = partList.Any(p => p.slotType == BodySlot.SlotType.LeftArm && p.mobeType == BodySlot.MobeType.Spider);
+        bool hasSpiderRightArm = partList.Any(p => p.slotType == BodySlot.SlotType.RightArm && p.mobeType == BodySlot.MobeType.Spider);
+
+        if (hasSpiderLeftArm && hasSpiderRightArm)
+        {
+            Debug.Log("Комбинация активирована: обе руки — паучьи!");
+            // Здесь можно добавить эффекты, бонусы и т.д.
+            // Например: playerAttack.EnableWebShooting(true);
+        }
+        else
+        {
+            // Отключить эффект, если комбинация потеряна
+            // playerAttack.EnableWebShooting(false);
+        }
     }
     
     public List<SymbiotePart> GetEquippedParts()

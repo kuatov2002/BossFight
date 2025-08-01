@@ -16,6 +16,7 @@ public class BodySlot
     public enum MobeType
     {
         Cangaroo,
+        Spider
     }
     public SlotType slotType;
     public SymbiotePart currentPart;
