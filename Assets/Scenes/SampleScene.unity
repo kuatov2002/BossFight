@@ -684,7 +684,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   symbioteSystem: {fileID: 1059847638}
-  playerStats: {fileID: 1059847637}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -774,7 +773,6 @@ GameObject:
   - component: {fileID: 1059847628}
   - component: {fileID: 1059847636}
   - component: {fileID: 1059847638}
-  - component: {fileID: 1059847637}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -954,24 +952,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   health: 100
---- !u!114 &1059847637
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1059847626}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2237600d1a1def2428c43f018918f24d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  baseHealth: 100
-  baseDamage: 10
-  baseSpeed: 5
-  currentHealth: 0
-  currentDamage: 0
-  currentSpeed: 0
 --- !u!114 &1059847638
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -994,10 +974,9 @@ MonoBehaviour:
   - slotType: 3
     currentPart: {fileID: 0}
   - slotType: 4
-    currentPart: {fileID: 11400000, guid: 71c339d889adc064f9eb6c7a34fda92a, type: 2}
+    currentPart: {fileID: 0}
   - slotType: 5
-    currentPart: {fileID: 11400000, guid: 751d25beeed90564fba4a0e308ac4852, type: 2}
-  playerStats: {fileID: 1059847637}
+    currentPart: {fileID: 0}
   playerMovement: {fileID: 1059847629}
   playerAttack: {fileID: 1059847631}
 --- !u!1 &1288177527
@@ -1281,6 +1260,7 @@ GameObject:
   - component: {fileID: 543450652902227323}
   - component: {fileID: 897822636}
   - component: {fileID: 919132148911351746}
+  - component: {fileID: 919132148911351747}
   m_Layer: 0
   m_Name: Boss
   m_TagString: Untagged
@@ -1310,6 +1290,22 @@ MonoBehaviour:
   meleeAttackDuration: 2
   player: {fileID: 1059847635}
   animator: {fileID: 897822636}
+--- !u!114 &919132148911351747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132148911351745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f53d9ef315a576247879b578f87c95ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bossParts:
+  - {fileID: 11400000, guid: 71c339d889adc064f9eb6c7a34fda92a, type: 2}
+  - {fileID: 11400000, guid: 751d25beeed90564fba4a0e308ac4852, type: 2}
+  playerSymbioteSystem: {fileID: 1059847638}
 --- !u!4 &1031632035049309990
 Transform:
   m_ObjectHideFlags: 0

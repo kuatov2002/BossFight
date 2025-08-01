@@ -10,7 +10,6 @@ public class SymbioteSystem : MonoBehaviour
     public BodySlot[] bodySlots;
     
     [Header("References")]
-    [SerializeField] private PlayerStats playerStats;
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private PlayerAttack playerAttack;
     private void Awake()
@@ -35,20 +34,30 @@ public class SymbioteSystem : MonoBehaviour
     
     public bool EquipSymbiote(SymbiotePart part)
     {
+        // Проверяем, есть ли уже такая часть у игрока
+        foreach (BodySlot slot in bodySlots)
+        {
+            if (slot.isOccupied && slot.currentPart == part)
+            {
+                Debug.Log($"У игрока уже есть часть: {part.partName}");
+                return false;
+            }
+        }
+    
         // Находим подходящий слот
         BodySlot targetSlot = bodySlots.FirstOrDefault(slot => slot.slotType == part.slotType);
-        
+    
         if (targetSlot == null || !targetSlot.CanEquip(part))
         {
             Debug.Log($"Cannot equip {part.partName} to this slot");
             return false;
         }
-        
+    
         // Экипируем часть
         targetSlot.EquipPart(part);
-        
+    
         List<SymbiotePart> equippedParts = new List<SymbiotePart>();
-        
+    
         // Собираем все экипированные части
         foreach (BodySlot slot in bodySlots)
         {
@@ -57,10 +66,10 @@ public class SymbioteSystem : MonoBehaviour
                 equippedParts.Add(slot.currentPart);
             }
         }
-        
+    
         // Проверяем комбинации
         CheckCombinations(equippedParts);
-        
+    
         Debug.Log($"Equipped {part.partName} to {part.slotType}");
         return true;
     }

@@ -5,7 +5,6 @@ public class SimpleInventoryGUI : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private SymbioteSystem symbioteSystem;
-    [SerializeField] private PlayerStats playerStats;
     
     private bool showInventory = false;
     private Rect windowRect = new Rect(100, 100, 400, 500);
@@ -21,7 +20,7 @@ public class SimpleInventoryGUI : MonoBehaviour
     
     private void OnGUI()
     {
-        if (showInventory && symbioteSystem != null && playerStats != null)
+        if (showInventory && symbioteSystem != null)
         {
             windowRect = GUI.Window(0, windowRect, InventoryWindow, "СИМБИОТ ИНВЕНТАРЬ");
         }
@@ -36,9 +35,9 @@ public class SimpleInventoryGUI : MonoBehaviour
         GUILayout.Space(10);
         
         // Отображение характеристик
-        GUILayout.Label($"Здоровье: {playerStats.currentHealth:F0}/{playerStats.baseHealth:F0}");
+        /*GUILayout.Label($"Здоровье: {playerStats.currentHealth:F0}/{playerStats.baseHealth:F0}");
         GUILayout.Label($"Урон: {playerStats.currentDamage:F1} (базовый: {playerStats.baseDamage:F1})");
-        GUILayout.Label($"Скорость: {playerStats.currentSpeed:F1} (базовая: {playerStats.baseSpeed:F1})");
+        GUILayout.Label($"Скорость: {playerStats.currentSpeed:F1} (базовая: {playerStats.baseSpeed:F1})");*/
         
         GUILayout.Space(20);
         GUILayout.Label("=== СЛОТЫ ТЕЛА ===", GUI.skin.box);
