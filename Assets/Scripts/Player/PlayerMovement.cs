@@ -6,6 +6,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Movement Settings")]
     public float moveSpeed = 6f;
     public float jumpForce = 8f;
+    public int jumpCount = 1; // Максимальное количество прыжков
     public float gravity = 20f;
     
     [SerializeField] private Transform followTarget;
@@ -14,20 +15,25 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _moveDirection;
     private bool _isDashing = false;
     private Vector2 _look;
-    
+    private int _currentJumpCount; // Текущее количество доступных прыжков
+
     void Start()
     {
         _controller = GetComponent<CharacterController>();
+        _currentJumpCount = jumpCount; // Инициализируем количество прыжков
     }
 
     private void Update()
     {
         HandleMouseLook();
+
+        // Пример вызова прыжка (можно убрать, если вызывается из другого скрипта)
+        // if (Input.GetButtonDown("Jump"))
+        //     Jump();
     }
 
     public void HandleMovement(Vector3 input)
     {
-        // Если не в процессе дэша, обрабатываем обычное движение
         if (!_isDashing)
         {
             if (input.magnitude > 1f)
@@ -54,9 +60,7 @@ public class PlayerMovement : MonoBehaviour
     {
         _look.x = Input.GetAxis("Mouse X");
         _look.y = -Input.GetAxis("Mouse Y");
-        
-        
-        // Standard mouse look
+
         followTarget.rotation *= Quaternion.AngleAxis(_look.x, Vector3.up);
         followTarget.rotation *= Quaternion.AngleAxis(_look.y, Vector3.right);
 
@@ -77,11 +81,13 @@ public class PlayerMovement : MonoBehaviour
         transform.rotation = Quaternion.Euler(0, followTarget.rotation.eulerAngles.y, 0);
         followTarget.localEulerAngles = new Vector3(angles.x, 0, 0);
     }
+
     public void Jump()
     {
-        if (_controller.isGrounded)
+        if (_currentJumpCount > 0)
         {
             _moveDirection.y = jumpForce;
+            _currentJumpCount--;
         }
     }
 
@@ -94,10 +100,10 @@ public class PlayerMovement : MonoBehaviour
         else if (_moveDirection.y < 0)
         {
             _moveDirection.y = -0.1f;
+            _currentJumpCount = jumpCount; // Восстанавливаем количество прыжков при касании земли
         }
     }
 
-    // Методы для управления дэшем
     public void StartDash(Vector3 dashVelocity)
     {
         _moveDirection = dashVelocity;

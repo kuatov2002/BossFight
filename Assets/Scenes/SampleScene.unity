@@ -758,6 +758,8 @@ GameObject:
   - component: {fileID: 1059847629}
   - component: {fileID: 1059847628}
   - component: {fileID: 1059847636}
+  - component: {fileID: 1059847638}
+  - component: {fileID: 1059847637}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -794,6 +796,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 6
   jumpForce: 8
+  jumpCount: 1
   gravity: 20
   followTarget: {fileID: 1354397268}
 --- !u!114 &1059847630
@@ -936,6 +939,50 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   health: 100
+--- !u!114 &1059847637
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1059847626}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2237600d1a1def2428c43f018918f24d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseHealth: 100
+  baseDamage: 10
+  baseSpeed: 5
+  currentHealth: 0
+  currentDamage: 0
+  currentSpeed: 0
+--- !u!114 &1059847638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1059847626}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d26e41b442420d4d9b8e2e104f82651, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bodySlots:
+  - slotType: 0
+    currentPart: {fileID: 0}
+  - slotType: 1
+    currentPart: {fileID: 0}
+  - slotType: 2
+    currentPart: {fileID: 0}
+  - slotType: 3
+    currentPart: {fileID: 0}
+  - slotType: 4
+    currentPart: {fileID: 11400000, guid: 71c339d889adc064f9eb6c7a34fda92a, type: 2}
+  - slotType: 5
+    currentPart: {fileID: 0}
+  playerStats: {fileID: 1059847637}
 --- !u!1 &1288177527
 GameObject:
   m_ObjectHideFlags: 0
