@@ -21,10 +21,12 @@ public class SpiderLogic : MonoBehaviour
     
     // --- Новые поля для плавного перемещения ---
     public List<Transform> wayPoints = new List<Transform>(); // Список точек для перемещения
+    public Transform defaultPosition;
     public float smoothMoveSpeed = 30f; // Скорость плавного перемещения
     public float smoothRotationSpeed = 50f; // Скорость плавного поворота
     public GameObject webPrefab;
-    
+    public Transform shootPoint; // Точка, из которой будет производиться выстрел
+    public float returnToDefaultTime = 12f; // Время в секундах до возврата на позицию по умолчанию
     
     // --- Ссылка на скрипт игрока ---
     private PlayerMovement playerMovementScript;
@@ -32,6 +34,10 @@ public class SpiderLogic : MonoBehaviour
     private float _lastAttack;
     private bool _hitWall = false; // Флаг столкновения со стеной
     private int _currentWayPointIndex = 0; // Индекс текущей точки назначения
+    private bool _isAtWayPoint = false; // Флаг достижения точки
+    private bool _isReturningToDefault = false; // Флаг возврата на позицию по умолчанию
+    private Coroutine _moveCoroutine; // Ссылка на основную корутину
+    private Coroutine _returnCoroutine; // Ссылка на корутину возврата
 
     void Start()
     {
@@ -49,7 +55,7 @@ public class SpiderLogic : MonoBehaviour
         }
 
         //StartCoroutine(MoveTowardsPlayerRoutine());
-        StartCoroutine(SmoothMoveToWayPoint(0));
+        _moveCoroutine = StartCoroutine(SmoothMoveToWayPointWithShooting(0));
     }
 
     private IEnumerator MoveTowardsPlayerRoutine()
@@ -70,6 +76,7 @@ public class SpiderLogic : MonoBehaviour
             {
                 // Движение в запомненном направлении
                 transform.position += moveDirection * moveSpeed * Time.deltaTime;
+                transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime, Space.Self);
                 elapsed += Time.deltaTime;
                 yield return null;
             }
@@ -78,100 +85,157 @@ public class SpiderLogic : MonoBehaviour
     }
 
     /// <summary>
-    /// Плавное перемещение к следующей точке в списке wayPoints с плавным поворотом
-    /// </summary>
-    public IEnumerator SmoothMoveToNextWayPoint()
-    {
-        if (wayPoints.Count == 0)
-        {
-            Debug.LogWarning("WayPoints list is empty!");
-            yield break;
-        }
-
-        // Получаем следующую точку
-        Transform targetWayPoint = wayPoints[_currentWayPointIndex];
-        
-        // Плавное перемещение и поворот
-        while (Vector3.Distance(transform.position, targetWayPoint.position) > 0.1f)
-        {
-            // Плавный поворот к точке
-            Vector3 directionToTarget = (targetWayPoint.position - transform.position).normalized;
-            Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
-            
-            // Плавное перемещение к точке
-            transform.position = Vector3.MoveTowards(transform.position, targetWayPoint.position, smoothMoveSpeed * Time.deltaTime);
-            
-            yield return null;
-        }
-        
-        // Переход к следующей точке (циклически)
-        _currentWayPointIndex = (_currentWayPointIndex + 1) % wayPoints.Count;
-    }
-
-    /// <summary>
-    /// Плавное перемещение к конкретной точке с плавным поворотом
-    /// </summary>
-    /// <param name="targetPosition">Целевая позиция</param>
-    public IEnumerator SmoothMoveToPoint(Vector3 targetPosition)
-    {
-        // Создаем временную точку для перемещения
-        GameObject tempTarget = new GameObject("TempMoveTarget");
-        tempTarget.transform.position = targetPosition;
-        
-        // Плавное перемещение и поворот
-        while (Vector3.Distance(transform.position, targetPosition) > 0.1f)
-        {
-            // Плавный поворот к точке
-            Vector3 directionToTarget = (targetPosition - transform.position).normalized;
-            Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
-            
-            // Плавное перемещение к точке
-            transform.position = Vector3.MoveTowards(transform.position, targetPosition, smoothMoveSpeed * Time.deltaTime);
-            
-            yield return null;
-        }
-        
-        // Удаляем временную точку
-        Destroy(tempTarget);
-    }
-
-    /// <summary>
-    /// Плавное перемещение к точке с заданным индексом
+    /// Плавное перемещение к точке с заданным индексом с последующим стрельбой
     /// </summary>
     /// <param name="wayPointIndex">Индекс точки в списке wayPoints</param>
-    public IEnumerator SmoothMoveToWayPoint(int wayPointIndex)
+    public IEnumerator SmoothMoveToWayPointWithShooting(int wayPointIndex)
     {
-        if (wayPoints.Count == 0)
+        yield return new WaitForSeconds(3f);
+        while (true) // Бесконечный цикл
         {
-            Debug.LogWarning("WayPoints list is empty!");
-            yield break;
-        }
-        
-        if (wayPointIndex < 0 || wayPointIndex >= wayPoints.Count)
-        {
-            Debug.LogWarning($"WayPoint index {wayPointIndex} is out of range!");
-            yield break;
-        }
-
-        Transform targetWayPoint = wayPoints[wayPointIndex];
-        _currentWayPointIndex = wayPointIndex;
-        
-        // Плавное перемещение и поворот
-        while (Vector3.Distance(transform.position, targetWayPoint.position) > 0.1f)
-        {
-            // Плавный поворот к ориентации точки
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetWayPoint.rotation, smoothRotationSpeed * Time.deltaTime);
+            if (wayPoints.Count == 0)
+            {
+                Debug.LogWarning("WayPoints list is empty!");
+                yield return new WaitForSeconds(1f);
+                continue;
+            }
             
-            // Плавное перемещение к точке
-            transform.position = Vector3.MoveTowards(transform.position, targetWayPoint.position, smoothMoveSpeed * Time.deltaTime);
+            if (wayPointIndex < 0 || wayPointIndex >= wayPoints.Count)
+            {
+                Debug.LogWarning($"WayPoint index {wayPointIndex} is out of range!");
+                wayPointIndex = 0;
+            }
+
+            Transform targetWayPoint = wayPoints[wayPointIndex];
+            _currentWayPointIndex = wayPointIndex;
+            
+            // Плавное перемещение и поворот
+            while (Vector3.Distance(transform.position, targetWayPoint.position) > 0.1f && !_isReturningToDefault)
+            {
+                // Плавный поворот к ориентации точки
+                Vector3 directionToTarget = (targetWayPoint.position - transform.position).normalized;
+                Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
+                
+                // Плавное перемещение к точке
+                transform.position = Vector3.MoveTowards(transform.position, targetWayPoint.position, smoothMoveSpeed * Time.deltaTime);
+                
+                yield return null;
+            }
+            
+            if (_isReturningToDefault) break;
+            
+            // Когда достигли точки, копируем её точный поворот
+            transform.rotation = targetWayPoint.rotation;
+            
+            // Устанавливаем флаг достижения точки
+            _isAtWayPoint = true;
+            
+            // Стреляем в игрока
+            ShootWebAtPlayer();
+            
+            // Запускаем корутину возврата через 12 секунд
+            if (_returnCoroutine == null)
+            {
+                _returnCoroutine = StartCoroutine(ReturnToDefaultPositionAfterDelay());
+            }
+            
+            // Ждем немного перед следующим перемещением
+            yield return new WaitForSeconds(1f);
+            
+            // Переход к следующей точке (циклически)
+            wayPointIndex = (wayPointIndex + 1) % wayPoints.Count;
+            _isAtWayPoint = false;
+        }
+    }
+
+    /// <summary>
+    /// Возврат на позицию по умолчанию через заданное время
+    /// </summary>
+    private IEnumerator ReturnToDefaultPositionAfterDelay()
+    {
+        yield return new WaitForSeconds(returnToDefaultTime);
+        
+        if (defaultPosition != null && !_isReturningToDefault)
+        {
+            _isReturningToDefault = true;
+            
+            // Останавливаем основную корутину движения
+            if (_moveCoroutine != null)
+            {
+                StopCoroutine(_moveCoroutine);
+            }
+            
+            // Плавное возвращение на позицию по умолчанию
+            yield return StartCoroutine(SmoothMoveToDefaultPosition());
+            
+            // После возврата продолжаем движение по точкам
+            _isReturningToDefault = false;
+            _moveCoroutine = StartCoroutine(MoveTowardsPlayerRoutine());
+        }
+        
+        _returnCoroutine = null;
+    }
+
+    /// <summary>
+    /// Плавное перемещение на позицию по умолчанию
+    /// </summary>
+    private IEnumerator SmoothMoveToDefaultPosition()
+    {
+        if (defaultPosition == null) yield break;
+        
+        while (Vector3.Distance(transform.position, defaultPosition.position) > 0.1f)
+        {
+            // Плавный поворот к ориентации позиции по умолчанию
+            Vector3 directionToTarget = (defaultPosition.position - transform.position).normalized;
+            Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
+            
+            // Плавное перемещение к позиции по умолчанию
+            transform.position = Vector3.MoveTowards(transform.position, defaultPosition.position, smoothMoveSpeed * Time.deltaTime);
             
             yield return null;
         }
         
-        // Когда достигли точки, копируем её точный поворот
-        transform.rotation = targetWayPoint.rotation;
+        // Устанавливаем точную позицию и поворот
+        transform.position = defaultPosition.position;
+        transform.rotation = defaultPosition.rotation;
+    }
+
+    /// <summary>
+    /// Стрельба вебом в направлении игрока
+    /// </summary>
+    private void ShootWebAtPlayer()
+    {
+        if (webPrefab != null && player != null)
+        {
+            // Определяем точку выстрела (если не задана, используем позицию паука)
+            Vector3 spawnPosition = shootPoint != null ? shootPoint.position : transform.position;
+            
+            // Создаем веб
+            GameObject webInstance = Instantiate(webPrefab, spawnPosition, Quaternion.identity);
+            
+            // Направляем веб в сторону игрока
+            Vector3 directionToPlayer = (player.position - spawnPosition).normalized;
+            
+            // Добавляем немного разброса для реалистичности (опционально)
+            // directionToPlayer += new Vector3(UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f));
+            
+            // Получаем Rigidbody веба и применяем силу
+            Rigidbody webRb = webInstance.GetComponent<Rigidbody>();
+            if (webRb != null)
+            {
+                webRb.linearVelocity = directionToPlayer * 40f; // Скорость веба
+            }
+            else
+            {
+                Debug.LogWarning("Web prefab doesn't have Rigidbody component!");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Web prefab or player is not assigned!");
+        }
     }
 
     private void Die()
@@ -180,7 +244,8 @@ public class SpiderLogic : MonoBehaviour
         StopAllCoroutines();
         // Здесь должна быть логика смерти босса
         // Например: animator.SetTrigger("Die"); или Destroy(gameObject);
-        throw new System.NotImplementedException();
+        // throw new System.NotImplementedException();
+        Destroy(gameObject); // Простой пример уничтожения
     }
 
     // --- Обновленный OnTriggerStay ---
