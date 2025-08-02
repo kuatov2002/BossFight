@@ -63,6 +63,11 @@ public class PlayerMovement : MonoBehaviour
 
     public void HandleMovement(Vector3 input)
     {
+        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+        if (stateInfo.IsName("Hit1") || stateInfo.IsName("Hit2") || stateInfo.IsName("Hit3"))
+        {
+            return;
+        }
         // Сохраняем вектор ввода для поворота
         _lastMoveInput = input;
         
