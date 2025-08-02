@@ -21,3 +21,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         // Здесь логика смерти игрока
     }
 }
+
+// Интерфейс для объектов, которые могут получать урона
+public interface IDamageable
+{
+    void TakeDamage(float damage);
+}
