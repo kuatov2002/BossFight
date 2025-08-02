@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
-using Cysharp.Threading.Tasks;
-using System.Threading;
+
 public class BossController : MonoBehaviour
 {
     [Header("Параметры босса")]
@@ -21,11 +20,13 @@ public class BossController : MonoBehaviour
     [Header("Ссылки")]
     public Transform player;
     public Animator animator;
+    public Door door;
     
-    private CancellationTokenSource cancellationTokenSource;
     private bool isAttacking = false;
     private bool isRecovering = false;
     private float lastAttackTime = 0f;
+    private bool isDying = false; // Add this flag
+    private Coroutine bossLogicCoroutine;
     
     void Start()
     {
@@ -37,43 +38,34 @@ public class BossController : MonoBehaviour
         if (player == null)
             player = GameObject.FindGameObjectWithTag("Player").transform;
             
-        cancellationTokenSource = new CancellationTokenSource();
-        
         // Запускаем основную логику босса
-        BossLogicAsync(cancellationTokenSource.Token).Forget();
+        bossLogicCoroutine = StartCoroutine(BossLogicCoroutine());
     }
     
-    async UniTask BossLogicAsync(CancellationToken cancellationToken)
+    System.Collections.IEnumerator BossLogicCoroutine()
     {
-        try
+        while (health > 0)
         {
-            while (health > 0 && !cancellationToken.IsCancellationRequested)
+            // Постоянный поворот к игроку
+            RotateToPlayer();
+            
+            // Атака (только если не атакуем и не восстанавливаемся и прошел кулдаун)
+            if (!isAttacking && !isRecovering && Time.time - lastAttackTime >= attackCooldown)
             {
-                // Постоянный поворот к игроку
-                RotateToPlayer();
+                float distanceToPlayer = Vector3.Distance(transform.position, player.position);
                 
-                // Атака (только если не атакуем и не восстанавливаемся и прошел кулдаун)
-                if (!isAttacking && !isRecovering && Time.time - lastAttackTime >= attackCooldown)
+                if (distanceToPlayer <= meleeRange)
                 {
-                    float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-                    
-                    if (distanceToPlayer <= meleeRange)
-                    {
-                        await MeleeAttackAsync(cancellationToken);
-                    }
-                    else if (distanceToPlayer <= rangedRange)
-                    {
-                        await RangedAttackAsync(cancellationToken);
-                    }
+                    yield return StartCoroutine(MeleeAttackCoroutine());
                 }
-                
-                // Небольшая задержка перед следующей итерацией
-                await UniTask.DelayFrame(1, cancellationToken: cancellationToken);
+                else if (distanceToPlayer <= rangedRange)
+                {
+                    yield return StartCoroutine(RangedAttackCoroutine());
+                }
             }
-        }
-        catch (OperationCanceledException)
-        {
-            // Игнорируем отмену задачи
+            
+            // Небольшая задержка перед следующей итерацией
+            yield return null;
         }
     }
     
@@ -88,7 +80,7 @@ public class BossController : MonoBehaviour
         }
     }
     
-    async UniTask MeleeAttackAsync(CancellationToken cancellationToken)
+    System.Collections.IEnumerator MeleeAttackCoroutine()
     {
         isAttacking = true;
         lastAttackTime = Time.time;
@@ -98,27 +90,30 @@ public class BossController : MonoBehaviour
         SpawnMeleeAttack();
         
         // Ждем указанную длительность атаки, затем выключаем префаб
-        await UniTask.Delay((int)(meleeAttackDuration * 1000), cancellationToken: cancellationToken);
+        yield return new WaitForSeconds(meleeAttackDuration);
         DeactivateMeleeAttack();
         
         // Завершаем атаку
         isAttacking = false;
         
         // Восстановление после атаки
-        await RecoveryAsync(cancellationToken);
+        yield return StartCoroutine(RecoveryCoroutine());
     }
     
-    async UniTask RangedAttackAsync(CancellationToken cancellationToken)
+    System.Collections.IEnumerator RangedAttackCoroutine()
     {
         isAttacking = true;
         lastAttackTime = Time.time;
         animator.SetTrigger("rangedAttack");
         
         // Ждем завершения анимации атаки (вызов OnAttackEnd)
-        await UniTask.WaitUntil(() => !isAttacking, cancellationToken: cancellationToken);
+        while (isAttacking)
+        {
+            yield return null;
+        }
         
         // Восстановление после атаки
-        await RecoveryAsync(cancellationToken);
+        yield return StartCoroutine(RecoveryCoroutine());
     }
     
     void SpawnMeleeAttack()
@@ -137,10 +132,10 @@ public class BossController : MonoBehaviour
         }
     }
     
-    async UniTask RecoveryAsync(CancellationToken cancellationToken)
+    System.Collections.IEnumerator RecoveryCoroutine()
     {
         isRecovering = true;
-        await UniTask.Delay((int)(recoveryTime * 1000), cancellationToken: cancellationToken);
+        yield return new WaitForSeconds(recoveryTime);
         isRecovering = false;
     }
     
@@ -152,6 +147,9 @@ public class BossController : MonoBehaviour
     
     public void TakeDamage(float damage)
     {
+        // Don't take damage if already dying
+        if (isDying) return;
+        
         health -= damage;
         Debug.Log($"Босс получил {damage} урона. Осталось здоровья: {health}");
         
@@ -163,31 +161,34 @@ public class BossController : MonoBehaviour
     
     void Die()
     {
+        // Prevent multiple death calls
+        if (isDying) return;
+        isDying = true;
+        
         Debug.Log("Босс побежден!");
         // Проигрываем анимацию смерти (если есть)
         // animator.SetTrigger("die");
         
-        // Отменяем все задачи
-        cancellationTokenSource?.Cancel();
+        // Останавливаем основную логику
+        if (bossLogicCoroutine != null)
+        {
+            StopCoroutine(bossLogicCoroutine);
+        }
         
         // Отключаем объект (или делаем другую логику смерти)
         gameObject.SetActive(false);
+        door.gameObject.SetActive(true);
     }
     
     void OnDestroy()
     {
-        cancellationTokenSource?.Cancel();
-        cancellationTokenSource?.Dispose();
+        // Unsubscribe from events
+        BossActions.onBossDied -= Die;
     }
     
     void OnDisable()
     {
-        cancellationTokenSource?.Cancel();
+        // Останавливаем все корутины при отключении
+        StopAllCoroutines();
     }
-}
-
-// Интерфейс для объектов, которые могут получать урона
-public interface IDamageable
-{
-    void TakeDamage(float damage);
 }
