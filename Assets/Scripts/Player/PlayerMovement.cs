@@ -1,4 +1,5 @@
 using System.Collections;
+using GogoGaga.OptimizedRopesAndCables;
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
@@ -11,6 +12,7 @@ public class PlayerMovement : MonoBehaviour
     public float gravity = 20f;
     
     [SerializeField] private Transform followTarget;
+    [SerializeField] private Rope webRope;
     
     private CharacterController _controller;
     private Vector3 _moveDirection;
@@ -29,7 +31,7 @@ public class PlayerMovement : MonoBehaviour
     {
         HandleMouseLook();
 
-        if (Input.GetKeyDown(KeyCode.LeftShift))
+        if (Input.GetKeyDown(KeyCode.F))
         {
             ShootWeb();
         }
@@ -136,20 +138,28 @@ public class PlayerMovement : MonoBehaviour
     {
         Vector3 rayOrigin = Camera.main.transform.position;
         Vector3 rayDirection = Camera.main.transform.forward;
-    
+
         if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, 100f))
         {
             Vector3 directionToHit = (hit.point - transform.position).normalized;
             float distance = Vector3.Distance(hit.point, transform.position);
-        
+
             // Скорость постоянная, время зависит от расстояния
             float webSpeed = 30f;
             float travelTime = distance / webSpeed;
-        
+            travelTime = travelTime > 0.2f ? travelTime : 0.2f;
             Vector3 impulse = directionToHit * webSpeed;
             StartDash(impulse);
+
+            // --- Создаём пустой объект в точке попадания ---
+            GameObject emptyObject = new GameObject("WebTarget");
+            emptyObject.transform.position = hit.point;
+
+            // --- Назначаем этот объект как конечную точку верёвки ---
+            webRope.SetEndPoint(emptyObject.transform);
+            webRope.ropeLength = distance;
             _isWebDashing = true;
-        
+
             Invoke(nameof(StopWebDash), travelTime);
         }
     }
@@ -179,6 +189,7 @@ public class PlayerMovement : MonoBehaviour
     
         EndDash();
         _isWebDashing = false;
+        webRope.SetEndPoint(null);
     }
 
     public bool IsGrounded() => _controller.isGrounded;
