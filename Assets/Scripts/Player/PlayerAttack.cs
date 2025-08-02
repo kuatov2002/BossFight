@@ -7,7 +7,7 @@ public class PlayerAttack : MonoBehaviour
     public float attackDamage = 20f;
     public LayerMask enemyLayer;
     public float attackCooldown = 0.5f;
-
+    public Vector3 offset; 
     private float _attackCooldownTimer = 0f;
 
     void Update()
@@ -23,14 +23,14 @@ public class PlayerAttack : MonoBehaviour
         _attackCooldownTimer = attackCooldown;
 
         // Позиция атаки - немного впереди игрока
-        Vector3 attackPosition = transform.position + transform.forward * 1f;
+        Vector3 attackPosition = transform.position + offset;
 
         Collider[] hitEnemies = Physics.OverlapSphere(attackPosition, attackRange, enemyLayer);
         
         foreach (Collider enemy in hitEnemies)
         {
             // Здесь можно вызвать метод у врага
-            // enemy.GetComponent<EnemyHealth>()?.TakeDamage(attackDamage);
+            enemy.GetComponent<BossHealth>()?.TakeDamage(attackDamage);
             Debug.Log($"Атакован враг: {enemy.name}");
         }
     }
@@ -41,7 +41,7 @@ public class PlayerAttack : MonoBehaviour
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
-        Vector3 attackPosition = transform.position + transform.forward * 1f;
+        Vector3 attackPosition = transform.position + offset;
         Gizmos.DrawWireSphere(attackPosition, attackRange);
     }
 }
