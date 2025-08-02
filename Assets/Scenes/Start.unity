@@ -1436,7 +1436,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5c64bea03c0991479eab61fc643da61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  symbioteSystem: {fileID: 0}
+  symbioteSystem: {fileID: 1207311963}
 --- !u!1 &817507299
 GameObject:
   m_ObjectHideFlags: 0
@@ -9477,7 +9477,7 @@ MonoBehaviour:
   bossParts:
   - {fileID: 11400000, guid: 71c339d889adc064f9eb6c7a34fda92a, type: 2}
   - {fileID: 11400000, guid: 751d25beeed90564fba4a0e308ac4852, type: 2}
-  playerSymbioteSystem: {fileID: 0}
+  playerSymbioteSystem: {fileID: 1207311963}
 --- !u!114 &5465940247319584242
 MonoBehaviour:
   m_ObjectHideFlags: 0

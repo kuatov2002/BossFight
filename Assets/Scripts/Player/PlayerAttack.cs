@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class PlayerAttack : MonoBehaviour
@@ -125,7 +126,10 @@ public class PlayerAttack : MonoBehaviour
 
         foreach (Collider enemy in hitEnemies)
         {
-            enemy.GetComponent<BossHealth>()?.TakeDamage(attackDamage);
+            if (enemy.GetComponent<BossHealth>() != null)
+            {
+                StartCoroutine(PauseEffect(enemy.GetComponent<BossHealth>(),attackDamage));
+            }
         }
 
 #if UNITY_EDITOR
@@ -133,6 +137,16 @@ public class PlayerAttack : MonoBehaviour
 #endif
     }
 
+    private IEnumerator PauseEffect(BossHealth bossHealth, float damage)
+    {
+        // Замедляем время вместо полной остановки
+        anim.speed = 0;
+        yield return new WaitForSecondsRealtime(0.1f); // Реальное время
+        anim.speed = 1;
+    
+        bossHealth.TakeDamage(damage);
+    }
+    
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
