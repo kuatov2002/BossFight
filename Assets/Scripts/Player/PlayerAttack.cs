@@ -31,7 +31,6 @@ public class PlayerAttack : MonoBehaviour
         {
             // Здесь можно вызвать метод у врага
             enemy.GetComponent<BossHealth>()?.TakeDamage(attackDamage);
-            Debug.Log($"Атакован враг: {enemy.name}");
         }
     }
 

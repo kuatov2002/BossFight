@@ -16,7 +16,8 @@ public class BossHealth : MonoBehaviour
     
     void Die()
     {
-        Debug.Log("Игрок погиб!");
+        BossActions.onBossDied.Invoke();
+        Debug.Log("Босс погиб!");
         // Здесь логика смерти игрока
     }
 }

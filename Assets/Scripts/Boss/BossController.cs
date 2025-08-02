@@ -29,6 +29,8 @@ public class BossController : MonoBehaviour
     
     void Start()
     {
+        BossActions.onBossDied += Die;
+        
         if (animator == null)
             animator = GetComponent<Animator>();
             
