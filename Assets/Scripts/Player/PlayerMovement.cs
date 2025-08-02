@@ -1,6 +1,7 @@
 using System.Collections;
 using GogoGaga.OptimizedRopesAndCables;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
@@ -12,19 +13,26 @@ public class PlayerMovement : MonoBehaviour
     public float gravity = 20f;
     
     [SerializeField] private Transform followTarget;
+    
+    [Header("Spider Settings")]
     [SerializeField] private Rope webRope;
+    public bool canShootWeb = true;
     
     private CharacterController _controller;
     private Vector3 _moveDirection;
     private bool _isDashing = false;
     private Vector2 _look;
     private int _currentJumpCount; // Текущее количество доступных прыжков
-    private bool _canShootWeb = true;
+    
     private bool _isWebDashing = false;
     void Start()
     {
         _controller = GetComponent<CharacterController>();
         _currentJumpCount = jumpCount; // Инициализируем количество прыжков
+        
+        
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     private void Update()
@@ -126,7 +134,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void EnableWebShooting(bool enable)
     {
-        _canShootWeb = enable;
+        canShootWeb = enable;
         if (!enable && _isWebDashing)
         {
             StopWebDash();
@@ -150,7 +158,7 @@ public class PlayerMovement : MonoBehaviour
             travelTime = travelTime > 0.2f ? travelTime : 0.2f;
             Vector3 impulse = directionToHit * webSpeed;
             StartDash(impulse);
-
+            webRope.RecalculateRope();
             // --- Создаём пустой объект в точке попадания ---
             GameObject emptyObject = new GameObject("WebTarget");
             emptyObject.transform.position = hit.point;
