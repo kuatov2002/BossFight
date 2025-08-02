@@ -14,7 +14,11 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField] private Transform followTarget;
     [SerializeField] private Animator animator;
-
+    [SerializeField] private Transform geometry;
+    
+    [Header("Rotation Settings")]
+    public float rotationSpeed = 10f;
+    
     [Header("Spider Settings")]
     [SerializeField] private Rope webRope;
     public bool canShootWeb = true;
@@ -25,6 +29,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 _look;
     private int _currentJumpCount;
     private bool _isWebDashing = false;
+    private Vector3 _lastMoveInput; // Сохраняем последний вектор движения
 
     void Start()
     {
@@ -38,8 +43,10 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        HandleMouseLook();
-
+        if (!_isDashing)
+        {
+            HandleMouseLook();
+        }
         if (Input.GetKeyDown(KeyCode.F))
         {
             ShootWeb();
@@ -49,10 +56,16 @@ public class PlayerMovement : MonoBehaviour
         animator.SetFloat("Speed", new Vector3(_moveDirection.x, 0, _moveDirection.z).magnitude);
         animator.SetBool("IsGrounded", _controller.isGrounded);
         animator.SetFloat("VerticalVelocity", _moveDirection.y);
+        
+        // Поворачиваем геометрию игрока
+        RotatePlayerGeometry();
     }
 
     public void HandleMovement(Vector3 input)
     {
+        // Сохраняем вектор ввода для поворота
+        _lastMoveInput = input;
+        
         if (!_isDashing)
         {
             if (input.magnitude > 1f)
@@ -73,6 +86,47 @@ public class PlayerMovement : MonoBehaviour
 
         ApplyGravity();
         _controller.Move(_moveDirection * Time.deltaTime);
+    }
+
+    private void RotatePlayerGeometry()
+    {
+        if (geometry == null || _isDashing) return;
+
+        // Если нет движения - не поворачиваем
+        if (_lastMoveInput.magnitude < 0.1f) return;
+
+        Vector3 forward = Camera.main.transform.forward;
+        Vector3 right = Camera.main.transform.right;
+
+        forward.y = 0f;
+        right.y = 0f;
+        forward.Normalize();
+        right.Normalize();
+
+        // Вычисляем направление движения
+        Vector3 moveDirection = (forward * _lastMoveInput.z + right * _lastMoveInput.x).normalized;
+
+        // Если движемся назад - смотрим на камеру
+        if (_lastMoveInput.z < -0.1f && Mathf.Abs(_lastMoveInput.x) < 0.5f)
+        {
+            // Поворачиваем к камере (обратное направление камеры)
+            Vector3 cameraForward = Camera.main.transform.forward;
+            cameraForward.y = 0f;
+            cameraForward.Normalize();
+            // Инвертируем направление, чтобы смотреть на камеру
+            moveDirection = -cameraForward;
+        }
+
+        // Поворот только по оси Y
+        if (moveDirection != Vector3.zero)
+        {
+            float targetAngle = Mathf.Atan2(moveDirection.x, moveDirection.z) * Mathf.Rad2Deg;
+            float currentAngle = geometry.eulerAngles.y;
+            
+            // Плавный поворот только по Y
+            float newAngle = Mathf.LerpAngle(currentAngle, targetAngle, rotationSpeed * Time.deltaTime);
+            geometry.eulerAngles = new Vector3(geometry.eulerAngles.x, newAngle, geometry.eulerAngles.z);
+        }
     }
 
     public void Jump()
@@ -147,8 +201,9 @@ public class PlayerMovement : MonoBehaviour
             CancelInvoke(nameof(StopWebDash));
         }
     }
+    
     private void HandleMouseLook()
-    {//
+    {
         float mouseX = Input.GetAxis("Mouse X");
         float mouseY = Input.GetAxis("Mouse Y");
 
@@ -167,6 +222,7 @@ public class PlayerMovement : MonoBehaviour
         // Обнуляем Z-вращение (чтобы не кренилась)
         followTarget.localEulerAngles = new Vector3(followTarget.localEulerAngles.x, followTarget.localEulerAngles.y, 0);
     }
+    
     private IEnumerator SmoothStopWebDash()
     {
         Vector3 initialVelocity = _moveDirection;

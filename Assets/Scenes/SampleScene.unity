@@ -773,6 +773,11 @@ MonoBehaviour:
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
   m_SoftShadowQuality: 1
+--- !u!4 &470690600 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4042940087036422592, guid: 56f49c9b32782594e835b7ab9ad4643a, type: 3}
+  m_PrefabInstance: {fileID: 1498576420}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &600095812
 GameObject:
   m_ObjectHideFlags: 0
@@ -1322,6 +1327,8 @@ MonoBehaviour:
   gravity: 20
   followTarget: {fileID: 1354397268}
   animator: {fileID: 0}
+  geometry: {fileID: 0}
+  rotationSpeed: 10
   webRope: {fileID: 1902415122}
   canShootWeb: 1
 --- !u!114 &1059847630
@@ -2053,7 +2060,9 @@ MonoBehaviour:
   jumpCount: 1
   gravity: 20
   followTarget: {fileID: 1261983500}
-  animator: {fileID: 0}
+  animator: {fileID: 1400480409}
+  geometry: {fileID: 470690600}
+  rotationSpeed: 10
   webRope: {fileID: 1360978496}
   canShootWeb: 1
 --- !u!114 &1400480403
