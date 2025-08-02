@@ -22,9 +22,18 @@ public class Door : MonoBehaviour
     }
 
     private void OnTriggerEnter(Collider other)
-    {
-        // Можно добавить проверку на игрока:
-        if (other.CompareTag("Player")) LoadRandomSceneFromBuild();
+    {    
+        if (other.CompareTag("Player"))
+        {
+            // Найдем SymbioteSystem у игрока и сохраним данные
+            SymbioteSystem playerSymbiote = other.GetComponent<SymbioteSystem>();
+            if(PersistentSymbioteManager.Instance != null && playerSymbiote != null)
+            {
+                PersistentSymbioteManager.Instance.SaveSymbioteData(playerSymbiote);
+                Debug.Log("Player symbiote data saved before scene load.");
+            }
+            LoadRandomSceneFromBuild();
+        }
     }
 
     private void LoadRandomSceneFromBuild()
