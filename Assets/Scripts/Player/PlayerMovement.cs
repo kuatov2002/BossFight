@@ -11,17 +11,21 @@ public class PlayerMovement : MonoBehaviour
     public float jumpForce = 8f;
     public int jumpCount = 2;
     public float gravity = 20f;
-
     [SerializeField] private Transform followTarget;
     [SerializeField] private Animator animator;
     [SerializeField] private Transform geometry;
-    
+
     [Header("Rotation Settings")]
     public float rotationSpeed = 10f;
-    
+
     [Header("Spider Settings")]
     [SerializeField] private Rope webRope;
     public bool canShootWeb = true;
+
+    // --- Новое поле для силы отбрасывания ---
+    [Header("Knockback Settings")]
+    public float knockbackForce = 10f; // Сила отбрасывания
+    public float knockbackDuration = 0.5f; // Длительность отбрасывания (необязательно)
 
     private CharacterController _controller;
     private Vector3 _moveDirection;
@@ -31,46 +35,64 @@ public class PlayerMovement : MonoBehaviour
     private bool _isWebDashing = false;
     private Vector3 _lastMoveInput; // Сохраняем последний вектор движения
 
+    // --- Новое поле для состояния отбрасывания ---
+    private bool _isKnockedback = false;
+    private Vector3 _knockbackDirection; // Направление отбрасывания
+
     void Start()
     {
         _controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
         _currentJumpCount = jumpCount;
-
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
     private void Update()
     {
-        if (!_isDashing)
+        // --- Блокируем управление во время отбрасывания ---
+        if (!_isDashing && !_isKnockedback)
         {
             HandleMouseLook();
         }
+
         if (Input.GetKeyDown(KeyCode.F))
         {
             ShootWeb();
         }
 
         // Передача параметров в аниматор
-        animator.SetFloat("Speed", new Vector3(_moveDirection.x, 0, _moveDirection.z).magnitude);
+        // --- Также блокируем анимацию движения во время отбрасывания ---
+        if (!_isKnockedback)
+        {
+            animator.SetFloat("Speed", new Vector3(_moveDirection.x, 0, _moveDirection.z).magnitude);
+        }
         animator.SetBool("IsGrounded", _controller.isGrounded);
         animator.SetFloat("VerticalVelocity", _moveDirection.y);
-        
+
         // Поворачиваем геометрию игрока
-        RotatePlayerGeometry();
+        // --- Блокируем поворот во время отбрасывания ---
+        if (!_isKnockedback)
+        {
+             RotatePlayerGeometry();
+        }
     }
 
+    // --- Обновленный HandleMovement с проверкой на отбрасывание ---
     public void HandleMovement(Vector3 input)
     {
+        // --- Не двигаем игрока, если он отбрасывается ---
+        if (_isKnockedback) return;
+
         AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
         if (stateInfo.IsName("Hit1") || stateInfo.IsName("Hit2") || stateInfo.IsName("Hit3"))
         {
             return;
         }
+
         // Сохраняем вектор ввода для поворота
         _lastMoveInput = input;
-        
+
         if (!_isDashing)
         {
             if (input.magnitude > 1f)
@@ -78,39 +100,32 @@ public class PlayerMovement : MonoBehaviour
 
             Vector3 forward = Camera.main.transform.forward;
             Vector3 right = Camera.main.transform.right;
-
             forward.y = 0f;
             right.y = 0f;
             forward.Normalize();
             right.Normalize();
-
             Vector3 move = (forward * input.z + right * input.x).normalized;
             _moveDirection.x = move.x * moveSpeed;
             _moveDirection.z = move.z * moveSpeed;
         }
-
         ApplyGravity();
         _controller.Move(_moveDirection * Time.deltaTime);
     }
 
+
     private void RotatePlayerGeometry()
     {
         if (geometry == null || _isDashing) return;
-
         // Если нет движения - не поворачиваем
         if (_lastMoveInput.magnitude < 0.1f) return;
-
         Vector3 forward = Camera.main.transform.forward;
         Vector3 right = Camera.main.transform.right;
-
         forward.y = 0f;
         right.y = 0f;
         forward.Normalize();
         right.Normalize();
-
         // Вычисляем направление движения
         Vector3 moveDirection = (forward * _lastMoveInput.z + right * _lastMoveInput.x).normalized;
-
         // Если движемся назад - смотрим на камеру
         if (_lastMoveInput.z < -0.1f && Mathf.Abs(_lastMoveInput.x) < 0.5f)
         {
@@ -121,13 +136,11 @@ public class PlayerMovement : MonoBehaviour
             // Инвертируем направление, чтобы смотреть на камеру
             moveDirection = -cameraForward;
         }
-
         // Поворот только по оси Y
         if (moveDirection != Vector3.zero)
         {
             float targetAngle = Mathf.Atan2(moveDirection.x, moveDirection.z) * Mathf.Rad2Deg;
             float currentAngle = geometry.eulerAngles.y;
-            
             // Плавный поворот только по Y
             float newAngle = Mathf.LerpAngle(currentAngle, targetAngle, rotationSpeed * Time.deltaTime);
             geometry.eulerAngles = new Vector3(geometry.eulerAngles.x, newAngle, geometry.eulerAngles.z);
@@ -136,6 +149,9 @@ public class PlayerMovement : MonoBehaviour
 
     public void Jump()
     {
+         // --- Не позволяем прыгать во время отбрасывания ---
+        if (_isKnockedback) return;
+
         if (_currentJumpCount > 0)
         {
             _moveDirection.y = jumpForce;
@@ -146,6 +162,7 @@ public class PlayerMovement : MonoBehaviour
 
     void ApplyGravity()
     {
+        // --- Применяем гравитацию даже во время отбрасывания ---
         if (!_controller.isGrounded)
         {
             _moveDirection.y -= gravity * Time.deltaTime;
@@ -159,6 +176,9 @@ public class PlayerMovement : MonoBehaviour
 
     public void StartDash(Vector3 dashVelocity)
     {
+        // --- Не позволяем начать дэш, если игрок отбрасывается ---
+        if (_isKnockedback) return;
+
         _moveDirection = dashVelocity;
         _isDashing = true;
         animator.SetBool("IsDashing", true);
@@ -172,28 +192,26 @@ public class PlayerMovement : MonoBehaviour
 
     private void ShootWeb()
     {
+         // --- Не позволяем стрелять паутиной во время отбрасывания ---
+        if (_isKnockedback) return;
+
         Vector3 rayOrigin = Camera.main.transform.position;
         Vector3 rayDirection = Camera.main.transform.forward;
-
         if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, 100f))
         {
             Vector3 directionToHit = (hit.point - transform.position).normalized;
             float distance = Vector3.Distance(hit.point, transform.position);
-
             float webSpeed = 30f;
             float travelTime = distance / webSpeed;
             travelTime = travelTime > 0.2f ? travelTime : 0.2f;
             Vector3 impulse = directionToHit * webSpeed;
             StartDash(impulse);
             webRope.RecalculateRope();
-
             GameObject emptyObject = new GameObject("WebTarget");
             emptyObject.transform.position = hit.point;
-
             webRope.SetEndPoint(emptyObject.transform);
             webRope.ropeLength = distance;
             _isWebDashing = true;
-
             Invoke(nameof(StopWebDash), travelTime);
         }
     }
@@ -206,44 +224,76 @@ public class PlayerMovement : MonoBehaviour
             CancelInvoke(nameof(StopWebDash));
         }
     }
-    
+
     private void HandleMouseLook()
     {
         float mouseX = Input.GetAxis("Mouse X");
         float mouseY = Input.GetAxis("Mouse Y");
-
         // Вращаем тело игрока по оси Y
         transform.Rotate(Vector3.up * mouseX);
-
         // Вращаем камеру (followTarget) по оси X
         followTarget.Rotate(Vector3.left * mouseY);
-
         // Ограничиваем угол наклона камеры (чтобы не переворачивалась)
         Vector3 currentRotation = followTarget.localEulerAngles;
         if (currentRotation.x > 180) currentRotation.x -= 360;
         currentRotation.x = Mathf.Clamp(currentRotation.x, -70f, 70f);
         followTarget.localEulerAngles = currentRotation;
-
         // Обнуляем Z-вращение (чтобы не кренилась)
         followTarget.localEulerAngles = new Vector3(followTarget.localEulerAngles.x, followTarget.localEulerAngles.y, 0);
     }
-    
+
     private IEnumerator SmoothStopWebDash()
     {
         Vector3 initialVelocity = _moveDirection;
         float smoothTime = 0.3f;
         float elapsedTime = 0f;
-
         while (elapsedTime < smoothTime)
         {
             _moveDirection = Vector3.Lerp(initialVelocity, Vector3.zero, elapsedTime / smoothTime);
             elapsedTime += Time.deltaTime;
             yield return null;
         }
-
         EndDash();
         _isWebDashing = false;
         webRope.SetEndPoint(null);
+    }
+
+    // --- Новый метод для отбрасывания ---
+    public void Knockback(Vector3 knockDirection)
+    {
+        // Нормализуем направление и устанавливаем его
+        _knockbackDirection = knockDirection.normalized;
+        _isKnockedback = true;
+        StartCoroutine(KnockbackCoroutine());
+    }
+
+    private IEnumerator KnockbackCoroutine()
+    {
+        float elapsedTime = 0f;
+        Vector3 initialVelocity = _knockbackDirection * knockbackForce;
+
+        // --- Применяем силу отбрасывания ---
+        _moveDirection = initialVelocity;
+        // --- Отключаем управление гравитацией на время отбрасывания ---
+        // (Или можно оставить ApplyGravity, если хотите, чтобы гравитация действовала)
+        // В этом примере гравитация будет действовать, так как ApplyGravity вызывается в Update
+
+        while (elapsedTime < knockbackDuration)
+        {
+            // --- Можно добавить затухание скорости ---
+            // float t = elapsedTime / knockbackDuration;
+            // _moveDirection = Vector3.Lerp(initialVelocity, Vector3.zero, t);
+
+            // --- Или просто двигаем с постоянной скоростью ---
+             _controller.Move(_moveDirection * Time.deltaTime);
+
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        // --- Сбрасываем скорость и состояние после окончания отбрасывания ---
+        _moveDirection = Vector3.zero; // Или установите нужную скорость после отбрасывания
+        _isKnockedback = false;
     }
 
     public bool IsGrounded() => _controller.isGrounded;
