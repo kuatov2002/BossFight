@@ -24,7 +24,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 4925837963642883786, guid: 56f49c9b32782594e835b7ab9ad4643a, type: 3}
+  m_Motion: {fileID: 7400000, guid: 6d601f2a8ceae854096fd4667050513c, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -54,7 +54,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -9094835232657333338, guid: 56f49c9b32782594e835b7ab9ad4643a, type: 3}
+  m_Motion: {fileID: 7400000, guid: bc07aa2a537e54c4a826a037e69b708e, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -136,7 +136,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -2440698234662215085, guid: 56f49c9b32782594e835b7ab9ad4643a, type: 3}
+  m_Motion: {fileID: 7400000, guid: 9d36964e83bf62f44a2f0e752ce98b25, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -200,7 +200,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Dash
-  m_Speed: 1
+  m_Speed: 1.4
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: -4855414355869273636}
@@ -214,7 +214,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -1081009809623236876, guid: 56f49c9b32782594e835b7ab9ad4643a, type: 3}
+  m_Motion: {fileID: 7400000, guid: 5ed99b4f31aaabf4ca448c21a476acd9, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
