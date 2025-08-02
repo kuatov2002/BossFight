@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 63741191}
   - component: {fileID: 63741190}
   - component: {fileID: 63741189}
+  - component: {fileID: 63741193}
   m_Layer: 5
   m_Name: UI
   m_TagString: Untagged
@@ -222,6 +223,19 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &63741193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 63741188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 486624744b5861f4481a2b77de7bfe87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bossHp: {fileID: 600095816}
 --- !u!1 &73258911
 GameObject:
   m_ObjectHideFlags: 0
@@ -789,6 +803,7 @@ GameObject:
   - component: {fileID: 600095813}
   - component: {fileID: 600095815}
   - component: {fileID: 600095814}
+  - component: {fileID: 600095816}
   m_Layer: 5
   m_Name: BossHP
   m_TagString: Untagged
@@ -857,6 +872,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 600095812}
   m_CullTransparentMesh: 1
+--- !u!114 &600095816
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 600095812}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95a69e3e87f8d4342bfb0b6a1a8a85d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bossName: {fileID: 1863326531}
+  bossHPImage: {fileID: 1902800535}
+  bossHPNum: {fileID: 829807955}
 --- !u!1 &788706236
 GameObject:
   m_ObjectHideFlags: 0
@@ -1072,7 +1102,7 @@ GameObject:
   - component: {fileID: 829807956}
   - component: {fileID: 829807955}
   m_Layer: 5
-  m_Name: BossName (1)
+  m_Name: BossHPNum
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2099,11 +2129,11 @@ MonoBehaviour:
   movement: {fileID: 1400480402}
   maxComboDelay: 1
   attackRange: 2
-  attackDamage: 20
+  attackDamage: 3
   enemyLayer:
     serializedVersion: 2
     m_Bits: 4294967295
-  offset: {x: 0, y: 0.95, z: 1.34}
+  offset: {x: 0, y: 0.95, z: -1}
 --- !u!95 &1400480409
 Animator:
   serializedVersion: 7
@@ -4752,7 +4782,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04ceaa11fc7eed245801bfd1544cb2fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  health: 100
+  maxHealth: 100
 --- !u!4 &5477181764745794634
 Transform:
   m_ObjectHideFlags: 0

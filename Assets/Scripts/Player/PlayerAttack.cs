@@ -118,17 +118,30 @@ public class PlayerAttack : MonoBehaviour
 
     public void ExecuteAttack()
     {
+        // Учитываем поворот объекта при определении позиции атаки
         Vector3 attackPosition = transform.position + transform.TransformDirection(offset);
+
         Collider[] hitEnemies = Physics.OverlapSphere(attackPosition, attackRange, enemyLayer);
+
         foreach (Collider enemy in hitEnemies)
         {
             enemy.GetComponent<BossHealth>()?.TakeDamage(attackDamage);
         }
+
 #if UNITY_EDITOR
         Debug.DrawLine(attackPosition, attackPosition + Vector3.up * 0.5f, Color.red, 0.1f);
 #endif
     }
 
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+
+        // Также учитываем поворот при отрисовке Gizmos
+        Vector3 attackPosition = transform.position + transform.TransformDirection(offset);
+
+        Gizmos.DrawWireSphere(attackPosition, attackRange);
+    }
     // private void ResetCombo() { ... } // Можно удалить или оставить для других целей
     // void OnDrawGizmosSelected() { ... } // Оставить как есть
 }

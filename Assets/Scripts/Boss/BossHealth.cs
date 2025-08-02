@@ -1,17 +1,28 @@
+using System;
 using UnityEngine;
 
 public class BossHealth : MonoBehaviour
 {
-    public float health = 100f;
+    private void Start()
+    {
+        _health = maxHealth;
+        UIManager.Instance.bossHp.SetHP(_health, maxHealth);
+    }
+
+    public float maxHealth = 100f;
+    private float _health;
     public void TakeDamage(float damage)
     {
-        health -= damage;
-        Debug.Log($"Босс получил {damage} урона. Осталось здоровья: {health}");
+        _health -= damage;
+        Debug.Log($"Босс получил {damage} урона. Осталось здоровья: {_health}");
         
-        if (health <= 0)
+        if (_health <= 0)
         {
+            _health = 0;
             Die();
         }
+        
+        UIManager.Instance.bossHp.SetHP(_health, maxHealth);
     }
     
     void Die()
