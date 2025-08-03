@@ -18,7 +18,8 @@ public class DragonLogic : MonoBehaviour
     public float landingWaitTime = 6f;      // Время ожидания на земле
     public float flightSpeed = 5f;          // Скорость полета
     public float fireDelay = 0.2f;          // Задержка перед началом стрельбы
-    
+
+    public Door door;
     private Transform currentTarget;        // Текущая цель для полета
     private bool isFlying = false;          // Флаг полета
     [SerializeField] private Animator animator;              // Аниматор (если используется)
@@ -26,6 +27,8 @@ public class DragonLogic : MonoBehaviour
     
     void Start()
     {
+        BossActions.onBossDied += Die;
+        door.gameObject.SetActive(false);
         if (flightPoints.Length == 0 || landingPoints.Length == 0)
         {
             Debug.LogError("Не заданы точки полета или посадки!");
@@ -235,5 +238,11 @@ public class DragonLogic : MonoBehaviour
         {
             animator.SetBool("IsFiring", firing);
         }
+    }
+
+    private void Die()
+    {
+        BossActions.onBossDied -= Die;
+        door.gameObject.SetActive(true);
     }
 }

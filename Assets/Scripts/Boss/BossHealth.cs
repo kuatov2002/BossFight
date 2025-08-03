@@ -18,21 +18,23 @@ public class BossHealth : MonoBehaviour
     {
         _health -= damage;
         Debug.Log($"Босс получил {damage} урона. Осталось здоровья: {_health}");
-        
+    
         if (_health <= 0)
         {
             _health = 0;
+            Debug.Log("Здоровье босса достигло нуля, вызываю Die()");
             Die();
         }
-        
-        UIManager.Instance.bossHp.SetHP(_health, maxHealth);
-        BossActions.onBossHit?.Invoke();
-    }
     
+        BossActions.onBossHit?.Invoke();
+        UIManager.Instance.bossHp.SetHP(_health, maxHealth);
+    }
+
     void Die()
     {
+        Debug.Log("BossHealth.Die() вызван, отправляю событие onBossDied");
         BossActions.onBossDied?.Invoke();
+        Debug.Log("Событие onBossDied отправлено!");
         Debug.Log("Босс погиб!");
-        // Здесь логика смерти игрока
     }
 }

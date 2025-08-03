@@ -3273,7 +3273,7 @@ MonoBehaviour:
   movement: {fileID: 1207311966}
   maxComboDelay: 1
   attackRange: 2
-  attackDamage: 10
+  attackDamage: 15
   enemyLayer:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -6808,7 +6808,7 @@ MonoBehaviour:
   AnimationFloorLevel: 0.001
   _Editor_Foldout_Setup_LegsList: 1
   _Editor_EnsureCount: 5
-  _Editor_OnValidateTrigger: 1
+  _Editor_OnValidateTrigger: 0
   _EditorAllowAutoUpdateFeetParams: 1
   _EditorCategory: 0
   _EditorSetupCategory: 2

@@ -14,7 +14,7 @@ public class SpiderLogic : MonoBehaviour
 
     public Transform player;
     public Animator animator;
-    public Door door;
+    public GameObject door;
     public float moveSpeed = 5f; // Скорость движения к игроку
     public float rotationSpeed = 180f; // Скорость вращения
     public float attackCooldown = 2f;
@@ -44,7 +44,9 @@ public class SpiderLogic : MonoBehaviour
     private bool isFirstAttack = true;
     void Start()
     {
-        BossActions.onBossDied += Die;
+        BossActions.onBossDied -= Die; // Сначала отписываемся (на всякий случай)
+        BossActions.onBossDied += Die;  // Потом подписываемся
+        Debug.Log("SpiderLogic подписался на событие onBossDied");
         if (animator == null)
             animator = GetComponent<Animator>();
         if (player == null)
@@ -251,13 +253,26 @@ public class SpiderLogic : MonoBehaviour
 
     private void Die()
     {
-        // Остановка всех корутин при смерти
-        StopAllCoroutines();
-        // Здесь должна быть логика смерти босса
-        // Например: animator.SetTrigger("Die"); или Destroy(gameObject);
-        // throw new System.NotImplementedException();
-        Destroy(gameObject); // Простой пример уничтожения
+        Debug.Log("открываю дверь");
+    
+        // Сначала включаем дверь
+        if (door != null) // Проверка на null - хорошая практика
+        {
+            door.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning("Ссылка на дверь (door) не назначена в инспекторе!");
+        }
+
+        // Отписываемся от события
         BossActions.onBossDied -= Die;
+
+        // Останавливаем все корутины
+        StopAllCoroutines();
+
+        // Уничтожаем объект босса
+        gameObject.SetActive(false);
     }
 
     // --- Обновленный OnTriggerStay ---
@@ -298,9 +313,10 @@ public class SpiderLogic : MonoBehaviour
             _hitWall = true; // Также проверяем столкновение при входе в триггер
         }
     }
-
-    void OnDestroy()
+    
+    [System.Obsolete("Только для тестирования"),ContextMenu("dieinsect")]
+    public void TestDie()
     {
-        
+        Die();
     }
 }

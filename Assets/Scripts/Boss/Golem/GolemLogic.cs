@@ -138,7 +138,7 @@ public class GolemBoss : MonoBehaviour
         SetAnimationAttack(false);
         SetAnimationMovement(false);
 
-        yield return new WaitForSeconds(4f);
+        yield return new WaitForSeconds(3f);
 
         isAttacking = false;
 
