@@ -110,10 +110,10 @@ public class GolemBoss : MonoBehaviour
         SetAnimationAttack(true);
 
         float animationLength = 3.0f;
-        float damageDelay = 0.8f;
+        float damageDelay = 0.9f;
 
         yield return new WaitForSeconds(damageDelay);
-
+        warning.SetActive(false);
         if (!isDead && IsPlayerInAttackArea())
         {
             Vector3 knockDirection = (player.transform.position - transform.position).normalized;
@@ -123,8 +123,8 @@ public class GolemBoss : MonoBehaviour
             {
                 playerHealth.TakeDamage(attackDamage);
             }
-            knockDirection.y = 1f; // Настройте по желанию
-            playerMovementScript.Knockback(knockDirection * 6f);
+            knockDirection.y = 0.5f; // Настройте по желанию
+            playerMovementScript.Knockback(knockDirection * 2f);
         }
 
         lastAttackTime = Time.time;
@@ -133,7 +133,6 @@ public class GolemBoss : MonoBehaviour
             yield return new WaitForSeconds(remainingTime);
 
         SetAnimationAttack(false);
-        warning.SetActive(false);
         SetAnimationMovement(false);
 
         yield return new WaitForSeconds(4f);
