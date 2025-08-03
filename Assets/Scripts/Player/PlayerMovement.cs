@@ -263,7 +263,7 @@ public class PlayerMovement : MonoBehaviour
     public void Knockback(Vector3 knockDirection)
     {
         // Нормализуем направление и устанавливаем его
-        _knockbackDirection = knockDirection.normalized;
+        _knockbackDirection = knockDirection;
         _isKnockedback = true;
         StartCoroutine(KnockbackCoroutine());
     }
