@@ -1,8 +1,6 @@
-using System;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.Mathematics;
 using Random = UnityEngine.Random;
 
 public class NecromancerBoss : MonoBehaviour
@@ -21,6 +19,15 @@ public class NecromancerBoss : MonoBehaviour
     [Header("Призыв")] 
     public List<Transform> pointsForSummon;
     public GameObject zombiePrefab;
+
+    [Header("Фаербол")] 
+    public GameObject fireballPrefab;
+    public Transform shootPlace;
+    
+    // Новые параметры для поворота
+    [Header("Поворот")]
+    public float rotationSpeed = 5f;
+    public bool alwaysFacePlayer = true;
     
     private bool canAct = true;
     private Color gizmoColor = Color.white;
@@ -40,12 +47,33 @@ public class NecromancerBoss : MonoBehaviour
     {
         if (player == null) return;
 
+        // Поворачиваем некроманта к игроку
+        if (alwaysFacePlayer)
+        {
+            FacePlayer();
+        }
+
         // Обновляем цвет гизмо в каждом кадре на основе текущего состояния
         UpdateGizmoColor();
 
         if (canAct && Time.time - lastActionTime >= actionCooldown)
         {
             StartCoroutine(PerformAction());
+        }
+    }
+
+    // Метод для поворота к игроку
+    void FacePlayer()
+    {
+        Vector3 directionToPlayer = (player.position - transform.position).normalized;
+        
+        // Обнуляем Y компоненту, чтобы персонаж не наклонялся
+        directionToPlayer.y = 0;
+        
+        if (directionToPlayer != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
     }
 
@@ -79,54 +107,20 @@ public class NecromancerBoss : MonoBehaviour
     {
         canAct = false;
         lastActionTime = Time.time;
+        
+        int action = Random.Range(0, 2);
 
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-        bool isPlayerInFront = IsPlayerInFront();
-
-        // Новое условие: игрок близко, но не в поле зрения
-        if (distanceToPlayer <= meleeRange && !isPlayerInFront)
+        switch (action)
         {
-            RetreatFromPlayer();
+            case 0:
+                SummonCreatures();
+                break;
+
+            case 1:
+                CastFireball();
+                break;
         }
-        else
-        {
-            int action = Random.Range(0, 3);
-
-            switch (action)
-            {
-                case 0:
-                    if (isPlayerInFront && distanceToPlayer <= meleeRange)
-                    {
-                        MeleeAttack();
-                    }
-                    else
-                    {
-                        if (distanceToPlayer > meleeRange && distanceToPlayer <= detectionRange)
-                            SummonCreatures();
-                        else
-                            CastFireball();
-                    }
-                    break;
-
-                case 1:
-                    if (distanceToPlayer > meleeRange && distanceToPlayer <= detectionRange)
-                    {
-                        SummonCreatures();
-                    }
-                    else
-                    {
-                        if (isPlayerInFront && distanceToPlayer <= meleeRange)
-                            MeleeAttack();
-                        else
-                            CastFireball();
-                    }
-                    break;
-
-                case 2:
-                    CastFireball();
-                    break;
-            }
-        }
+        
 
         yield return new WaitForSeconds(actionCooldown);
         canAct = true;
@@ -139,21 +133,43 @@ public class NecromancerBoss : MonoBehaviour
         return angle < frontAngle * 0.5f;
     }
 
-    void RetreatFromPlayer()
+    void ExecuteAttack() // вызывается через Animation Events
     {
-        Debug.Log("Некромант уходит от игрока! (игрок близко, но не в поле зрения)");
+        if (player == null) return;
+    
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        bool isPlayerInFront = IsPlayerInFront();
+    
+        // Проверяем, находится ли игрок в зоне ближнего боя и в поле зрения
+        if (distanceToPlayer <= meleeRange && isPlayerInFront)
+        {
+            // Наносим урон игроку
+            Debug.Log("Нанесен урон игроку!");
+            // Здесь должна быть логика нанесения урона игроку
+            // Например: player.GetComponent<PlayerHealth>().TakeDamage(damageAmount);
+        }
+        else
+        {
+            Debug.Log("Атака промахнулась - игрок вне зоны или не виден!");
+        }
     }
-
-    void MeleeAttack()
-    {
-        Debug.Log("Некромант ударил в ближнем бою!");
-    }
-
     void CastFireball()
     {
+        animator.SetTrigger("Fireball");
         Debug.Log("Некромант кастует фаербол!");
     }
 
+    public void ExecuteFireball()
+    {
+        var fireball = Instantiate(fireballPrefab, shootPlace.position, Quaternion.identity);
+        var fireScript = fireball.GetComponent<FireBreath>();
+        Vector3 directionToPlayer = (player.position - shootPlace.position).normalized;
+        fireScript.SetDirection(directionToPlayer);
+                
+        // Устанавливаем цель для отслеживания
+        fireScript.SetTarget(player);
+    }
+    
     void SummonCreatures()
     {
         animator.SetTrigger("Summon");

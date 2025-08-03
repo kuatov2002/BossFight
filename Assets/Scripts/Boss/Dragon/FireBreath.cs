@@ -10,7 +10,8 @@ public class FireBreath : MonoBehaviour
     private Vector3 direction;
     private Transform target;
     private float timer = 0f;
-    
+
+    public float knockForce = 0f;
     void Start()
     {
         direction = transform.forward;
@@ -59,6 +60,11 @@ public class FireBreath : MonoBehaviour
             {
                 health.TakeDamage(damage);
             }
+            var playerMovementScript=other.GetComponent<PlayerMovement>();
+            Vector3 knockDirection = (other.transform.position - transform.position).normalized;
+            // Можно немного поднять игрока вверх
+            knockDirection.y = 2f; // Настройте по желанию
+            playerMovementScript.Knockback(knockDirection);
             
             // Уничтожаем огненное дыхание
             Destroy(gameObject);
