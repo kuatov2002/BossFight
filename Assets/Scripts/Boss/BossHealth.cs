@@ -7,10 +7,13 @@ public class BossHealth : MonoBehaviour
     {
         _health = maxHealth;
         UIManager.Instance.bossHp.SetHP(_health, maxHealth);
+        UIManager.Instance.bossHp.SetName(bossName);
     }
 
     public float maxHealth = 100f;
+    public string bossName;
     private float _health;
+    
     public void TakeDamage(float damage)
     {
         _health -= damage;

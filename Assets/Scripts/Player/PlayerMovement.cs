@@ -50,6 +50,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        ApplyGravity();
         // --- Блокируем управление во время отбрасывания ---
         if (!_isDashing && !_isKnockedback)
         {
@@ -74,7 +75,7 @@ public class PlayerMovement : MonoBehaviour
         // --- Блокируем поворот во время отбрасывания ---
         if (!_isKnockedback)
         {
-             RotatePlayerGeometry();
+            RotatePlayerGeometry();
         }
     }
 
@@ -108,7 +109,7 @@ public class PlayerMovement : MonoBehaviour
             _moveDirection.x = move.x * moveSpeed;
             _moveDirection.z = move.z * moveSpeed;
         }
-        ApplyGravity();
+        
         _controller.Move(_moveDirection * Time.deltaTime);
     }
 

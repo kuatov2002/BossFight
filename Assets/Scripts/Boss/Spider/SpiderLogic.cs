@@ -27,10 +27,12 @@ public class SpiderLogic : MonoBehaviour
     public GameObject webPrefab;
     public Transform shootPoint; // Точка, из которой будет производиться выстрел
     public float returnToDefaultTime = 12f; // Время в секундах до возврата на позицию по умолчанию
-    
+
+    public float defaultDuration = 4f;
     // --- Ссылка на скрипт игрока ---
     private PlayerMovement playerMovementScript;
-
+    private PlayerHealth _playerHealth;
+    
     private float _lastAttack;
     private bool _hitWall = false; // Флаг столкновения со стеной
     private int _currentWayPointIndex = 0; // Индекс текущей точки назначения
@@ -54,13 +56,16 @@ public class SpiderLogic : MonoBehaviour
             Debug.LogError("PlayerMovement script not found on the player object!");
         }
 
+        _playerHealth = player.GetComponent<PlayerHealth>();
+        
         //StartCoroutine(MoveTowardsPlayerRoutine());
         _moveCoroutine = StartCoroutine(SmoothMoveToWayPointWithShooting(0));
     }
 
-    private IEnumerator MoveTowardsPlayerRoutine()
+    private IEnumerator MoveTowardsPlayerRoutine(float duration)
     {
-        while (true) // Бесконечный цикл движения
+        float startTime = Time.time;
+        while (Time.time - startTime < duration) // Бесконечный цикл движения
         {
             // Получаем текущее направление к игроку
             Vector3 directionToPlayer = (player.position - transform.position).normalized;
@@ -82,6 +87,8 @@ public class SpiderLogic : MonoBehaviour
             }
             // После 3 секунд или столкновения со стеной цикл повторяется - снова получаем новое направление
         }
+
+        StartCoroutine(SmoothMoveToWayPointWithShooting(0));
     }
 
     /// <summary>
@@ -90,7 +97,7 @@ public class SpiderLogic : MonoBehaviour
     /// <param name="wayPointIndex">Индекс точки в списке wayPoints</param>
     public IEnumerator SmoothMoveToWayPointWithShooting(int wayPointIndex)
     {
-        yield return new WaitForSeconds(3f);
+        yield return new WaitForSeconds(defaultDuration);
         while (true) // Бесконечный цикл
         {
             if (wayPoints.Count == 0)
@@ -171,7 +178,7 @@ public class SpiderLogic : MonoBehaviour
             
             // После возврата продолжаем движение по точкам
             _isReturningToDefault = false;
-            _moveCoroutine = StartCoroutine(MoveTowardsPlayerRoutine());
+            yield return StartCoroutine(MoveTowardsPlayerRoutine(returnToDefaultTime));
         }
         
         _returnCoroutine = null;
@@ -200,6 +207,8 @@ public class SpiderLogic : MonoBehaviour
         // Устанавливаем точную позицию и поворот
         transform.position = defaultPosition.position;
         transform.rotation = defaultPosition.rotation;
+
+        yield return new WaitForSeconds(defaultDuration);
     }
 
     /// <summary>
@@ -216,7 +225,7 @@ public class SpiderLogic : MonoBehaviour
             GameObject webInstance = Instantiate(webPrefab, spawnPosition, Quaternion.identity);
             
             // Направляем веб в сторону игрока
-            Vector3 directionToPlayer = (player.position - spawnPosition).normalized;
+            Vector3 directionToPlayer = (player.position + new Vector3(0, 1f, 0) - spawnPosition).normalized;
             
             // Добавляем немного разброса для реалистичности (опционально)
             // directionToPlayer += new Vector3(UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f));
@@ -268,6 +277,7 @@ public class SpiderLogic : MonoBehaviour
                         // Можно немного поднять игрока вверх
                         knockDirection.y = 0.5f; // Настройте по желанию
                         playerMovementScript.Knockback(knockDirection);
+                        _playerHealth.TakeDamage(10f);
                     }
                 }
                 break;

@@ -19,6 +19,14 @@ public class Web : MonoBehaviour
                 // Проверяем, превышает ли скорость пороговое значение
                 if (speed >= speedThreshold)
                 {
+                    // Вычисляем направление отбрасывания (от паука к игроку)
+                    Vector3 knockDirection = (other.transform.position - transform.position).normalized;
+                    var playerMovementScript = other.gameObject.GetComponent<PlayerMovement>();
+                    var _playerHealth = other.gameObject.GetComponent<PlayerHealth>();
+                    // Можно немного поднять игрока вверх
+                    knockDirection.y = 0.5f; // Настройте по желанию
+                    playerMovementScript.Knockback(knockDirection*1.4f);
+                    _playerHealth.TakeDamage(10f);
                     Debug.Log($"Игрок столкнулся с высокой скоростью: {speed:F2} м/с");
                 }
             }
