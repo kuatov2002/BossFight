@@ -26,6 +26,7 @@ public class BossHealth : MonoBehaviour
         }
         
         UIManager.Instance.bossHp.SetHP(_health, maxHealth);
+        BossActions.onBossHit.Invoke();
     }
     
     void Die()

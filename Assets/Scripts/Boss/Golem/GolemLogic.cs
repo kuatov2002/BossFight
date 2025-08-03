@@ -45,6 +45,7 @@ public class GolemBoss : MonoBehaviour
         lastAttackTime = -attackCooldown;
 
         BossActions.onBossDied += Die;
+        BossActions.onBossHit += PlayHitAnimation;
     }
 
     void Update()
@@ -230,5 +231,6 @@ public class GolemBoss : MonoBehaviour
 
         // Отписываемся от события
         BossActions.onBossDied -= Die;
+        BossActions.onBossHit -= PlayHitAnimation;
     }
 }
