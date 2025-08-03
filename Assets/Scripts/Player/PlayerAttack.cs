@@ -130,6 +130,10 @@ public class PlayerAttack : MonoBehaviour
             {
                 StartCoroutine(PauseEffect(enemy.GetComponent<BossHealth>(),attackDamage));
             }
+            else if(enemy.GetComponent<Zombie>() != null)
+            {
+                enemy.GetComponent<Zombie>().TakeDamage();
+            }
         }
 
 #if UNITY_EDITOR
