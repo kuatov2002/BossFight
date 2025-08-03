@@ -257,6 +257,7 @@ public class SpiderLogic : MonoBehaviour
         // Например: animator.SetTrigger("Die"); или Destroy(gameObject);
         // throw new System.NotImplementedException();
         Destroy(gameObject); // Простой пример уничтожения
+        BossActions.onBossDied -= Die;
     }
 
     // --- Обновленный OnTriggerStay ---
@@ -300,6 +301,6 @@ public class SpiderLogic : MonoBehaviour
 
     void OnDestroy()
     {
-        BossActions.onBossDied -= Die;
+        
     }
 }
