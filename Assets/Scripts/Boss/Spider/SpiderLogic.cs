@@ -18,7 +18,7 @@ public class SpiderLogic : MonoBehaviour
     public float moveSpeed = 5f; // Скорость движения к игроку
     public float rotationSpeed = 180f; // Скорость вращения
     public float attackCooldown = 2f;
-    
+
     // --- Новые поля для плавного перемещения ---
     public List<Transform> wayPoints = new List<Transform>(); // Список точек для перемещения
     public Transform defaultPosition;
@@ -27,12 +27,11 @@ public class SpiderLogic : MonoBehaviour
     public GameObject webPrefab;
     public Transform shootPoint; // Точка, из которой будет производиться выстрел
     public float returnToDefaultTime = 12f; // Время в секундах до возврата на позицию по умолчанию
-
     public float defaultDuration = 4f;
+
     // --- Ссылка на скрипт игрока ---
     private PlayerMovement playerMovementScript;
     private PlayerHealth _playerHealth;
-    
     private float _lastAttack;
     private bool _hitWall = false; // Флаг столкновения со стеной
     private int _currentWayPointIndex = 0; // Индекс текущей точки назначения
@@ -40,15 +39,20 @@ public class SpiderLogic : MonoBehaviour
     private bool _isReturningToDefault = false; // Флаг возврата на позицию по умолчанию
     private Coroutine _moveCoroutine; // Ссылка на основную корутину
     private Coroutine _returnCoroutine; // Ссылка на корутину возврата
-
     private bool isFirstAttack = true;
+
+    // --- Новое поле для отслеживания состояния смерти ---
+    private bool isDead = false; // Флаг, указывающий, мертв ли босс
+
     void Start()
     {
         BossActions.onBossDied -= Die; // Сначала отписываемся (на всякий случай)
         BossActions.onBossDied += Die;  // Потом подписываемся
         Debug.Log("SpiderLogic подписался на событие onBossDied");
+
         if (animator == null)
             animator = GetComponent<Animator>();
+
         if (player == null)
             player = GameObject.FindGameObjectWithTag("Player").transform;
 
@@ -60,7 +64,7 @@ public class SpiderLogic : MonoBehaviour
         }
 
         _playerHealth = player.GetComponent<PlayerHealth>();
-        
+
         //StartCoroutine(MoveTowardsPlayerRoutine());
         _moveCoroutine = StartCoroutine(SmoothMoveToWayPointWithShooting(0));
     }
@@ -70,18 +74,27 @@ public class SpiderLogic : MonoBehaviour
         float startTime = Time.time;
         while (Time.time - startTime < duration) // Бесконечный цикл движения
         {
+            // --- Проверка на смерть ---
+            if (isDead) yield break; 
+
             // Получаем текущее направление к игроку
             Vector3 directionToPlayer = (player.position - transform.position).normalized;
             directionToPlayer.y = 0; // Обнуляем Y чтобы не летать вверх/вниз
+
             // Запоминаем это направление
             Vector3 moveDirection = directionToPlayer;
+
             // Сброс флага столкновения
             _hitWall = false;
+
             // Движение и вращение в течение 3 секунд или до столкновения со стеной
             float moveDuration = 3f;
             float elapsed = 0f;
             while (elapsed < moveDuration && !_hitWall)
             {
+                // --- Проверка на смерть ---
+                if (isDead) yield break;
+
                 // Движение в запомненном направлении
                 transform.position += moveDirection * moveSpeed * Time.deltaTime;
                 transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime, Space.Self);
@@ -90,8 +103,9 @@ public class SpiderLogic : MonoBehaviour
             }
             // После 3 секунд или столкновения со стеной цикл повторяется - снова получаем новое направление
         }
-
-        StartCoroutine(SmoothMoveToWayPointWithShooting(0));
+        // --- Проверка на смерть перед запуском следующей корутины ---
+        if (!isDead)
+            StartCoroutine(SmoothMoveToWayPointWithShooting(0));
     }
 
     /// <summary>
@@ -102,15 +116,19 @@ public class SpiderLogic : MonoBehaviour
     {
         yield return new WaitForSeconds(isFirstAttack ? 2f : defaultDuration);
         isFirstAttack = false;
+
         while (true) // Бесконечный цикл
         {
+            // --- Проверка на смерть ---
+            if (isDead) yield break; 
+
             if (wayPoints.Count == 0)
             {
                 Debug.LogWarning("WayPoints list is empty!");
                 yield return new WaitForSeconds(1f);
                 continue;
             }
-            
+
             if (wayPointIndex < 0 || wayPointIndex >= wayPoints.Count)
             {
                 Debug.LogWarning($"WayPoint index {wayPointIndex} is out of range!");
@@ -119,41 +137,45 @@ public class SpiderLogic : MonoBehaviour
 
             Transform targetWayPoint = wayPoints[wayPointIndex];
             _currentWayPointIndex = wayPointIndex;
-            
+
             // Плавное перемещение и поворот
             while (Vector3.Distance(transform.position, targetWayPoint.position) > 0.1f && !_isReturningToDefault)
             {
+                // --- Проверка на смерть ---
+                if (isDead) yield break;
+
                 // Плавный поворот к ориентации точки
                 Vector3 directionToTarget = (targetWayPoint.position - transform.position).normalized;
                 Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
-                
+
                 // Плавное перемещение к точке
                 transform.position = Vector3.MoveTowards(transform.position, targetWayPoint.position, smoothMoveSpeed * Time.deltaTime);
-                
                 yield return null;
             }
-            
+
+            // --- Проверка на смерть ---
+            if (isDead) yield break;
             if (_isReturningToDefault) break;
-            
+
             // Когда достигли точки, копируем её точный поворот
             transform.rotation = targetWayPoint.rotation;
-            
+
             // Устанавливаем флаг достижения точки
             _isAtWayPoint = true;
-            
+
             // Стреляем в игрока
             ShootWebAtPlayer();
-            
+
             // Запускаем корутину возврата через 12 секунд
             if (_returnCoroutine == null)
             {
                 _returnCoroutine = StartCoroutine(ReturnToDefaultPositionAfterDelay());
             }
-            
+
             // Ждем немного перед следующим перемещением
             yield return new WaitForSeconds(1f);
-            
+
             // Переход к следующей точке (циклически)
             wayPointIndex = (wayPointIndex + 1) % wayPoints.Count;
             _isAtWayPoint = false;
@@ -166,25 +188,33 @@ public class SpiderLogic : MonoBehaviour
     private IEnumerator ReturnToDefaultPositionAfterDelay()
     {
         yield return new WaitForSeconds(returnToDefaultTime);
-        
+
+        // --- Проверка на смерть ---
+        if (isDead) yield break; 
+
         if (defaultPosition != null && !_isReturningToDefault)
         {
             _isReturningToDefault = true;
-            
+
             // Останавливаем основную корутину движения
             if (_moveCoroutine != null)
             {
                 StopCoroutine(_moveCoroutine);
             }
-            
+
             // Плавное возвращение на позицию по умолчанию
             yield return StartCoroutine(SmoothMoveToDefaultPosition());
-            
+
+            // --- Проверка на смерть ---
+            if (isDead) yield break; 
+
             // После возврата продолжаем движение по точкам
             _isReturningToDefault = false;
-            yield return StartCoroutine(MoveTowardsPlayerRoutine(returnToDefaultTime));
+            
+            // --- Проверка на смерть перед запуском следующей корутины ---
+            if (!isDead)
+                yield return StartCoroutine(MoveTowardsPlayerRoutine(returnToDefaultTime));
         }
-        
         _returnCoroutine = null;
     }
 
@@ -194,24 +224,28 @@ public class SpiderLogic : MonoBehaviour
     private IEnumerator SmoothMoveToDefaultPosition()
     {
         if (defaultPosition == null) yield break;
-        
+
         while (Vector3.Distance(transform.position, defaultPosition.position) > 0.1f)
         {
+            // --- Проверка на смерть ---
+            if (isDead) yield break; 
+
             // Плавный поворот к ориентации позиции по умолчанию
             Vector3 directionToTarget = (defaultPosition.position - transform.position).normalized;
             Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
-            
+
             // Плавное перемещение к позиции по умолчанию
             transform.position = Vector3.MoveTowards(transform.position, defaultPosition.position, smoothMoveSpeed * Time.deltaTime);
-            
             yield return null;
         }
-        
+
+        // --- Проверка на смерть ---
+        if (isDead) yield break; 
+
         // Устанавливаем точную позицию и поворот
         transform.position = defaultPosition.position;
         transform.rotation = defaultPosition.rotation;
-
         yield return new WaitForSeconds(defaultDuration);
     }
 
@@ -220,20 +254,23 @@ public class SpiderLogic : MonoBehaviour
     /// </summary>
     private void ShootWebAtPlayer()
     {
+        // --- Проверка на смерть ---
+        if (isDead) return; 
+
         if (webPrefab != null && player != null)
         {
             // Определяем точку выстрела (если не задана, используем позицию паука)
             Vector3 spawnPosition = shootPoint != null ? shootPoint.position : transform.position;
-            
+
             // Создаем веб
             GameObject webInstance = Instantiate(webPrefab, spawnPosition, Quaternion.identity);
-            
+
             // Направляем веб в сторону игрока
             Vector3 directionToPlayer = (player.position + new Vector3(0, 1f, 0) - spawnPosition).normalized;
-            
+
             // Добавляем немного разброса для реалистичности (опционально)
             // directionToPlayer += new Vector3(UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f));
-            
+
             // Получаем Rigidbody веба и применяем силу
             Rigidbody webRb = webInstance.GetComponent<Rigidbody>();
             if (webRb != null)
@@ -253,8 +290,13 @@ public class SpiderLogic : MonoBehaviour
 
     private void Die()
     {
+        // --- Проверка на повторный вызов ---
+        if (isDead) return; 
+
+        isDead = true; // Устанавливаем флаг смерти
         Debug.Log("открываю дверь");
-    
+        animator.SetTrigger("onDie");
+
         // Сначала включаем дверь
         if (door != null) // Проверка на null - хорошая практика
         {
@@ -270,14 +312,14 @@ public class SpiderLogic : MonoBehaviour
 
         // Останавливаем все корутины
         StopAllCoroutines();
-
-        // Уничтожаем объект босса
-        gameObject.SetActive(false);
     }
 
     // --- Обновленный OnTriggerStay ---
     private void OnTriggerStay(Collider other)
     {
+        // --- Проверка на смерть ---
+        if (isDead) return; 
+
         Debug.Log(other.tag);
         switch (other.tag)
         {
@@ -286,7 +328,6 @@ public class SpiderLogic : MonoBehaviour
                 {
                     _lastAttack = Time.time;
                     Debug.Log("больно в ноге");
-
                     // --- Вызываем отбрасывание у игрока ---
                     if (playerMovementScript != null)
                     {
@@ -308,13 +349,16 @@ public class SpiderLogic : MonoBehaviour
     // --- Обновленный OnTriggerEnter ---
     private void OnTriggerEnter(Collider other)
     {
+        // --- Проверка на смерть ---
+        if (isDead) return; 
+
         if (other.CompareTag("Wall"))
         {
             _hitWall = true; // Также проверяем столкновение при входе в триггер
         }
     }
-    
-    [System.Obsolete("Только для тестирования"),ContextMenu("dieinsect")]
+
+    [System.Obsolete("Только для тестирования"), ContextMenu("dieinsect")]
     public void TestDie()
     {
         Die();
