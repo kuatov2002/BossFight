@@ -24,10 +24,14 @@ public class DragonLogic : MonoBehaviour
     private bool isFlying = false;          // Флаг полета
     [SerializeField] private Animator animator;              // Аниматор (если используется)
     private float lastFireTime = 0f;        // Время последнего выстрела
+
+    // --- Новое поле для отслеживания состояния смерти ---
+    private bool isDead = false; // Флаг, указывающий, мертв ли босс
     
     void Start()
     {
-        BossActions.onBossDied += Die;
+        BossActions.onBossDied -= Die; // Отписываемся на случай, если уже подписан
+        BossActions.onBossDied += Die;  // Подписываемся на событие смерти
         door.gameObject.SetActive(false);
         if (flightPoints.Length == 0 || landingPoints.Length == 0)
         {
@@ -64,15 +68,27 @@ public class DragonLogic : MonoBehaviour
     {
         while (true)
         {
+            // --- Проверка на смерть ---
+            if (isDead) yield break;
+
             // 1. Взлетаем к случайной точке
             yield return StartCoroutine(FlyToRandomPoint());
             
+            // --- Проверка на смерть ---
+            if (isDead) yield break;
+
             // 2. Стреляем огнем
             yield return StartCoroutine(FireBreath());
             
+            // --- Проверка на смерть ---
+            if (isDead) yield break;
+
             // 3. Садимся на случайную точку
             yield return StartCoroutine(LandOnRandomPoint());
             
+            // --- Проверка на смерть ---
+            if (isDead) yield break;
+
             // 4. Ждем 6 секунд
             yield return new WaitForSeconds(landingWaitTime);
         }
@@ -80,6 +96,9 @@ public class DragonLogic : MonoBehaviour
     
     IEnumerator FlyToRandomPoint()
     {
+        // --- Проверка на смерть ---
+        if (isDead) yield break;
+
         // Выбираем случайную точку полета
         int randomIndex = Random.Range(0, flightPoints.Length);
         currentTarget = flightPoints[randomIndex];
@@ -90,6 +109,9 @@ public class DragonLogic : MonoBehaviour
         // Летим к точке
         while (Vector3.Distance(transform.position, currentTarget.position) > 0.1f)
         {
+            // --- Проверка на смерть внутри цикла ---
+            if (isDead) yield break;
+
             transform.position = Vector3.MoveTowards(
                 transform.position, 
                 currentTarget.position, 
@@ -121,6 +143,9 @@ public class DragonLogic : MonoBehaviour
     
     IEnumerator FireBreath()
     {
+        // --- Проверка на смерть ---
+        if (isDead) yield break;
+
         float fireTimer = 0f;
         
         SetFireAnimation(true);
@@ -130,6 +155,9 @@ public class DragonLogic : MonoBehaviour
         
         while (fireTimer < fireDuration)
         {
+            // --- Проверка на смерть внутри цикла ---
+            if (isDead) yield break;
+
             // Поворачиваем дракона к игроку (только по Y)
             Vector3 directionToPlayer = (playerTarget.position - transform.position).normalized;
             // Создаем вектор направления, но обнуляем Y компонент для поворота только по горизонтали
@@ -147,7 +175,11 @@ public class DragonLogic : MonoBehaviour
             // Стреляем огнем с заданной частотой
             if (Time.time - lastFireTime >= fireRate)
             {
-                ShootFireAtPlayer();
+                // --- Проверка на смерть перед выстрелом ---
+                if (!isDead)
+                {
+                    ShootFireAtPlayer();
+                }
                 lastFireTime = Time.time;
             }
             
@@ -160,6 +192,9 @@ public class DragonLogic : MonoBehaviour
     
     IEnumerator LandOnRandomPoint()
     {
+        // --- Проверка на смерть ---
+        if (isDead) yield break;
+
         // Выбираем случайную точку посадки
         int randomIndex = Random.Range(0, landingPoints.Length);
         currentTarget = landingPoints[randomIndex];
@@ -170,6 +205,9 @@ public class DragonLogic : MonoBehaviour
         // Летим к точке посадки
         while (Vector3.Distance(transform.position, currentTarget.position) > 0.1f)
         {
+            // --- Проверка на смерть внутри цикла ---
+            if (isDead) yield break;
+
             transform.position = Vector3.MoveTowards(
                 transform.position, 
                 currentTarget.position, 
@@ -202,6 +240,9 @@ public class DragonLogic : MonoBehaviour
     
     void ShootFireAtPlayer()
     {
+        // --- Проверка на смерть ---
+        if (isDead) return;
+
         if (fireBreathPrefab != null && firePoint != null && playerTarget != null)
         {
             // Создаем огненное дыхание
@@ -226,6 +267,9 @@ public class DragonLogic : MonoBehaviour
     
     void SetFlyingAnimation(bool flying)
     {
+        // --- Проверка на смерть ---
+        if (isDead) return;
+
         if (animator != null)
         {
             animator.SetBool("IsFlying", flying);
@@ -234,6 +278,9 @@ public class DragonLogic : MonoBehaviour
     
     void SetFireAnimation(bool firing)
     {
+        // --- Проверка на смерть ---
+        if (isDead) return;
+
         if (animator != null)
         {
             animator.SetBool("IsFiring", firing);
@@ -242,7 +289,33 @@ public class DragonLogic : MonoBehaviour
 
     private void Die()
     {
-        BossActions.onBossDied -= Die;
-        door.gameObject.SetActive(true);
+        // --- Проверка на повторный вызов ---
+        if (isDead) return;
+
+        isDead = true; // Устанавливаем флаг смерти
+        Debug.Log("Дракон мертв, открываю дверь");
+
+        BossActions.onBossDied -= Die; // Отписываемся от события
+
+        if (animator != null)
+        {
+            animator.SetTrigger("OnDeath"); // Проигрываем анимацию смерти
+        }
+        else
+        {
+             Debug.LogWarning("Animator не найден у дракона!");
+        }
+
+        if (door != null)
+        {
+            door.gameObject.SetActive(true); // Открываем дверь
+        }
+        else
+        {
+             Debug.LogWarning("Ссылка на дверь (door) не назначена в инспекторе у дракона!");
+        }
+
+        // Останавливаем все корутины, чтобы прервать любые текущие действия
+        StopAllCoroutines();
     }
 }
