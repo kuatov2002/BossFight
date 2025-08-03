@@ -41,6 +41,7 @@ public class SpiderLogic : MonoBehaviour
     private Coroutine _moveCoroutine; // Ссылка на основную корутину
     private Coroutine _returnCoroutine; // Ссылка на корутину возврата
 
+    private bool isFirstAttack = true;
     void Start()
     {
         BossActions.onBossDied += Die;
@@ -97,7 +98,8 @@ public class SpiderLogic : MonoBehaviour
     /// <param name="wayPointIndex">Индекс точки в списке wayPoints</param>
     public IEnumerator SmoothMoveToWayPointWithShooting(int wayPointIndex)
     {
-        yield return new WaitForSeconds(defaultDuration);
+        yield return new WaitForSeconds(isFirstAttack ? 2f : defaultDuration);
+        isFirstAttack = false;
         while (true) // Бесконечный цикл
         {
             if (wayPoints.Count == 0)
