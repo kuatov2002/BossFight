@@ -83,6 +83,8 @@ Material:
     - _ZTest: 4
     - _ZWrite: 1
     - _ZWriteControl: 0
+    - _multiply_emision: 10
+    - _multiply_roughness: 0.3
     m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1

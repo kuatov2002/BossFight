@@ -4,7 +4,7 @@ using UnityEngine;
 public class PlayerDash : MonoBehaviour
 {
     [Header("Dash Settings")]
-    public float dashForce = 15f;
+    public float dashForce = 4f;
     public float dashDuration = 0.2f;
     public float dashCooldown = 1f;
 
