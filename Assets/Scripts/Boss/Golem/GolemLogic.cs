@@ -7,7 +7,8 @@ public class GolemBoss : MonoBehaviour
     public float moveSpeed = 2f;
     public float attackRange = 2f;
     public float detectionRange = 15f;
-
+    public Door door;
+    
     [Header("Настройки атаки")]
     public float attackCooldown = 3f;
     public int attackDamage = 20;
@@ -31,6 +32,7 @@ public class GolemBoss : MonoBehaviour
 
     void Start()
     {
+        door.gameObject.SetActive(false);
         warning.SetActive(false);
         if (animator == null)
         {
@@ -123,7 +125,7 @@ public class GolemBoss : MonoBehaviour
             {
                 playerHealth.TakeDamage(attackDamage);
             }
-            knockDirection.y = 0.5f; // Настройте по желанию
+            knockDirection.y = 0f; // Настройте по желанию
             playerMovementScript.Knockback(knockDirection * 2f);
         }
 
@@ -218,6 +220,7 @@ public class GolemBoss : MonoBehaviour
     private void Die()
     {
         if (isDead) return;
+        door.gameObject.SetActive(true);
         warning.SetActive(false);
         isDead = true;
         PlayDeathAnimation();
