@@ -13,6 +13,7 @@ public class PlayerMovement : MonoBehaviour
     public float gravity = 20f;
     [SerializeField] private Transform followTarget;
     [SerializeField] private Animator animator;
+    [SerializeField] private Animator wingsAnimator; 
     [SerializeField] private Transform geometry;
 
     [Header("Rotation Settings")]
@@ -64,20 +65,27 @@ public class PlayerMovement : MonoBehaviour
 
         // Передача параметров в аниматор
         // --- Также блокируем анимацию движения во время отбрасывания ---
-        if (!_isKnockedback)
-        {
-            animator.SetFloat("Speed", new Vector3(_moveDirection.x, 0, _moveDirection.z).magnitude);
-        }
-        animator.SetBool("IsGrounded", _controller.isGrounded);
-        animator.SetFloat("VerticalVelocity", _moveDirection.y);
+         // --- Обновленный блок передачи параметров в оба аниматора ---
+    float currentSpeed = new Vector3(_moveDirection.x, 0, _moveDirection.z).magnitude;
+    bool isGrounded = _controller.isGrounded;
+    float verticalVelocity = _moveDirection.y;
 
-        // Поворачиваем геометрию игрока
-        // --- Блокируем поворот во время отбрасывания ---
-        if (!_isKnockedback)
-        {
-            RotatePlayerGeometry();
-        }
+    if (!_isKnockedback)
+    {
+        animator.SetFloat("Speed", currentSpeed);
+        if (wingsAnimator != null) wingsAnimator.SetFloat("Speed", currentSpeed);
     }
+    animator.SetBool("IsGrounded", isGrounded);
+    if (wingsAnimator != null) wingsAnimator.SetBool("IsGrounded", isGrounded);
+    
+    animator.SetFloat("VerticalVelocity", verticalVelocity);
+    if (wingsAnimator != null) wingsAnimator.SetFloat("VerticalVelocity", verticalVelocity);
+
+    if (!_isKnockedback)
+    {
+        RotatePlayerGeometry();
+    }
+}
 
     // --- Обновленный HandleMovement с проверкой на отбрасывание ---
     public void HandleMovement(Vector3 input)
@@ -149,17 +157,17 @@ public class PlayerMovement : MonoBehaviour
     }
 
     public void Jump()
-    {
-         // --- Не позволяем прыгать во время отбрасывания ---
-        if (_isKnockedback) return;
+{
+    if (_isKnockedback) return;
 
-        if (_currentJumpCount > 0)
-        {
-            _moveDirection.y = jumpForce;
-            _currentJumpCount--;
-            animator.SetTrigger("Jump"); // Запуск анимации прыжка
-        }
+    if (_currentJumpCount > 0)
+    {
+        _moveDirection.y = jumpForce;
+        _currentJumpCount--;
+        animator.SetTrigger("Jump"); // Запуск анимации прыжка у персонажа
+        if (wingsAnimator != null) wingsAnimator.SetTrigger("Jump"); // <--- И у крыльев
     }
+}
 
     void ApplyGravity()
     {
@@ -176,20 +184,21 @@ public class PlayerMovement : MonoBehaviour
     }
 
     public void StartDash(Vector3 dashVelocity)
-    {
-        // --- Не позволяем начать дэш, если игрок отбрасывается ---
-        if (_isKnockedback) return;
+{
+    if (_isKnockedback) return;
 
-        _moveDirection = dashVelocity;
-        _isDashing = true;
-        animator.SetBool("IsDashing", true);
-    }
+    _moveDirection = dashVelocity;
+    _isDashing = true;
+    animator.SetBool("IsDashing", true);
+    if (wingsAnimator != null) wingsAnimator.SetBool("IsDashing", true); // <--- И у крыльев
+}
 
     public void EndDash()
-    {
-        _isDashing = false;
-        animator.SetBool("IsDashing", false);
-    }
+{
+    _isDashing = false;
+    animator.SetBool("IsDashing", false);
+    if (wingsAnimator != null) wingsAnimator.SetBool("IsDashing", false); // <--- И у крыльев
+}
 
     private void ShootWeb()
     {
