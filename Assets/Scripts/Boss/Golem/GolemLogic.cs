@@ -7,26 +7,33 @@ public class GolemBoss : MonoBehaviour
     public float moveSpeed = 2f;
     public float attackRange = 2f;
     public float detectionRange = 15f;
-
+    public Door door;
+    
     [Header("Настройки атаки")]
     public float attackCooldown = 3f;
     public int attackDamage = 20;
-    public float attackRadius = 3f; // Новая переменная — радиус зоны атаки
-
+    public float attackRadius = 3f;
+    public GameObject warning;
+    
     [Header("Анимации")]
     public Animator animator;
     private float lastAttackTime;
     private bool isAttacking = false;
     private bool shouldMoveAfterAttack = false;
 
+    // Новый флаг смерти
+    private bool isDead = false;
+
     // Имена параметров аниматора
     private const string PARAM_IS_MOVING = "isMoving";
     private const string PARAM_IS_ATTACKING = "isAttacking";
-    private const string PARAM_TRIGGER_HIT = "OnHit"; // Если используется
-    private const string PARAM_TRIGGER_DEATH = "OnDeath"; // Если используется
+    private const string PARAM_TRIGGER_HIT = "OnHit";
+    private const string PARAM_TRIGGER_DEATH = "OnDeath";
 
     void Start()
     {
+        door.gameObject.SetActive(false);
+        warning.SetActive(false);
         if (animator == null)
         {
             animator = GetComponent<Animator>();
@@ -37,20 +44,21 @@ public class GolemBoss : MonoBehaviour
         }
         lastAttackTime = -attackCooldown;
 
-        // Если Rise должна запускаться триггером, раскомментируйте строку ниже:
-        // animator.SetTrigger(PARAM_TRIGGER_RISE);
-        // В текущем YAML Rise уже является стартовым состоянием, так что триггер может и не понадобиться.
+        BossActions.onBossDied += Die;
+        BossActions.onBossHit += PlayHitAnimation;
     }
 
     void Update()
     {
+        // Если мёртв — ничего не делаем
+        if (isDead) return;
+
         if (player == null) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         bool inDetectionRange = distanceToPlayer <= detectionRange;
         bool inAttackRange = distanceToPlayer <= attackRange;
 
-        // Поворачиваемся к игроку
         if (inDetectionRange)
         {
             Vector3 direction = (player.position - transform.position).normalized;
@@ -62,8 +70,7 @@ public class GolemBoss : MonoBehaviour
             }
         }
 
-        // Логика поведения
-        if (inDetectionRange && !isAttacking) // Не двигаемся, если атакуем
+        if (inDetectionRange && !isAttacking)
         {
             if (inAttackRange)
             {
@@ -72,22 +79,18 @@ public class GolemBoss : MonoBehaviour
             else
             {
                 MoveTowardsPlayer();
-                // Устанавливаем параметр для анимации ходьбы
                 SetAnimationMovement(true);
             }
         }
-        else if(!isAttacking) // Не в зоне обнаружения и не атакуем
+        else if (!isAttacking)
         {
-            // Устанавливаем параметр для анимации покоя
             SetAnimationMovement(false);
         }
-        // Если isAttacking == true, то параметры движения уже установлены в AttackSequence
-        // и будут сброшены там же.
     }
 
     void MoveTowardsPlayer()
     {
-        if (player == null || isAttacking) return;
+        if (player == null || isAttacking || isDead) return;
         Vector3 direction = (player.position - transform.position).normalized;
         direction.y = 0;
         transform.position += direction * moveSpeed * Time.deltaTime;
@@ -95,7 +98,8 @@ public class GolemBoss : MonoBehaviour
 
     void Attack()
     {
-        if (Time.time - lastAttackTime >= attackCooldown && !isAttacking)
+        warning.SetActive(true);
+        if (Time.time - lastAttackTime >= attackCooldown && !isAttacking && !isDead)
         {
             StartCoroutine(AttackSequence());
         }
@@ -106,22 +110,24 @@ public class GolemBoss : MonoBehaviour
         isAttacking = true;
         shouldMoveAfterAttack = false;
 
-        // Устанавливаем параметр для анимации атаки
         SetAnimationAttack(true);
 
-        float animationLength = 3.0f; // Предполагаемая длина анимации атаки
-        float damageDelay = 0.8f; // Когда наносится урон
+        float animationLength = 3.0f;
+        float damageDelay = 0.9f;
 
         yield return new WaitForSeconds(damageDelay);
-
-        // Проверяем, находится ли игрок в зоне атаки
-        if (IsPlayerInAttackArea())
+        warning.SetActive(false);
+        if (!isDead && IsPlayerInAttackArea())
         {
+            Vector3 knockDirection = (player.transform.position - transform.position).normalized;
+            var playerMovementScript = player.GetComponent<PlayerMovement>();
             PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
             if (playerHealth != null)
             {
                 playerHealth.TakeDamage(attackDamage);
             }
+            knockDirection.y = 0f; // Настройте по желанию
+            playerMovementScript.Knockback(knockDirection * 2f);
         }
 
         lastAttackTime = Time.time;
@@ -129,37 +135,34 @@ public class GolemBoss : MonoBehaviour
         if (remainingTime > 0)
             yield return new WaitForSeconds(remainingTime);
 
-        // Сбрасываем параметр атаки после завершения анимации
         SetAnimationAttack(false);
-    
-        // Теперь переходим в состояние Idle на 4 секунды
-        SetAnimationMovement(false); // Останавливаемся
+        SetAnimationMovement(false);
 
-        yield return new WaitForSeconds(4f); // Ждём 4 секунды в состоянии покоя
+        yield return new WaitForSeconds(3f);
 
         isAttacking = false;
 
-        // После ожидания проверяем, нужно ли двигаться
+        if (isDead) yield break;
+
         if (player != null)
         {
             float distanceToPlayer = Vector3.Distance(transform.position, player.position);
             if (distanceToPlayer > attackRange && distanceToPlayer <= detectionRange)
             {
                 shouldMoveAfterAttack = true;
-                SetAnimationMovement(true); // Начинаем движение
+                SetAnimationMovement(true);
             }
             else
             {
-                SetAnimationMovement(false); // Остаёмся в Idle
+                SetAnimationMovement(false);
             }
         }
         else
         {
-            SetAnimationMovement(false); // Остаёмся в Idle, если игрока нет
+            SetAnimationMovement(false);
         }
     }
 
-    // Новый метод: проверяет, находится ли игрок в зоне атаки
     bool IsPlayerInAttackArea()
     {
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, attackRadius);
@@ -173,7 +176,6 @@ public class GolemBoss : MonoBehaviour
         return false;
     }
 
-    // Методы для управления анимациями через параметры
     void SetAnimationMovement(bool isMoving)
     {
         if (animator != null)
@@ -190,19 +192,17 @@ public class GolemBoss : MonoBehaviour
         }
     }
 
-    // Пример метода для проигрывания анимации получения урона (если нужно)
     public void PlayHitAnimation()
     {
-         if (animator != null)
+        if (animator != null)
         {
             animator.SetTrigger(PARAM_TRIGGER_HIT);
         }
     }
 
-    // Пример метода для проигрывания анимации смерти (если нужно)
     public void PlayDeathAnimation()
     {
-         if (animator != null)
+        if (animator != null)
         {
             animator.SetTrigger(PARAM_TRIGGER_DEATH);
         }
@@ -214,8 +214,23 @@ public class GolemBoss : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, attackRange);
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
-        // Отображаем зону атаки
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, attackRadius);
+    }
+
+    private void Die()
+    {
+        if (isDead) return;
+        door.gameObject.SetActive(true);
+        warning.SetActive(false);
+        isDead = true;
+        PlayDeathAnimation();
+
+        // Останавливаем все корутины, если нужно
+        StopAllCoroutines();
+
+        // Отписываемся от события
+        BossActions.onBossDied -= Die;
+        BossActions.onBossHit -= PlayHitAnimation;
     }
 }

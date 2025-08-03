@@ -9,8 +9,14 @@ EditorBuildSettings:
     path: Assets/Scenes/Start.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
+    path: Assets/Scenes/Golem.unity
+    guid: 8eda5ff69fc88f342bad06524c443403
+  - enabled: 1
     path: Assets/Scenes/Spider.unity
     guid: f6ffd005ed2d7f140a7bbccbd2f1ecb8
+  - enabled: 1
+    path: Assets/Scenes/Dragon.unity
+    guid: e3f49c097afb3904fb48155e04894840
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

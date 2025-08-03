@@ -4,6 +4,8 @@ using UnityEngine.SceneManagement;
 [RequireComponent(typeof(Collider))]
 public class Door : MonoBehaviour
 {
+    public int goToRoom = 0;
+    
     private void Start()
     {
         gameObject.SetActive(false);
@@ -25,13 +27,6 @@ public class Door : MonoBehaviour
     {    
         if (other.CompareTag("Player"))
         {
-            // Найдем SymbioteSystem у игрока и сохраним данные
-            SymbioteSystem playerSymbiote = other.GetComponent<SymbioteSystem>();
-            if(PersistentSymbioteManager.Instance != null && playerSymbiote != null)
-            {
-                PersistentSymbioteManager.Instance.SaveSymbioteData(playerSymbiote);
-                Debug.Log("Player symbiote data saved before scene load.");
-            }
             LoadRandomSceneFromBuild();
         }
     }
@@ -45,33 +40,8 @@ public class Door : MonoBehaviour
             Debug.LogError("Нет сцен в Build Settings!");
             return;
         }
-
-        // Если только одна сцена, загружаем её же (или можно не загружать ничего)
-        if (sceneCount == 1)
-        {
-            Debug.Log("В билде только одна сцена, загружаю её...");
-            SceneManager.LoadScene(0);
-            return;
-        }
-
-        // Получаем индекс текущей сцены, чтобы не загружать ту же самую
-        int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
-        int randomSceneIndex;
-        
-        // Генерируем случайный индекс, отличный от текущей сцены
-        do
-        {
-            randomSceneIndex = Random.Range(0, sceneCount);
-        } 
-        while (randomSceneIndex == currentSceneIndex && sceneCount > 1);
-
-        // Получаем имя сцены по индексу
-        string scenePath = SceneUtility.GetScenePathByBuildIndex(randomSceneIndex);
-        string sceneName = System.IO.Path.GetFileNameWithoutExtension(scenePath);
-        
-        Debug.Log($"Загрузка случайной сцены: {sceneName} (индекс: {randomSceneIndex})");
         
         // Загружаем случайную сцену
-        SceneManager.LoadScene(randomSceneIndex);
+        SceneManager.LoadScene(goToRoom);
     }
 }

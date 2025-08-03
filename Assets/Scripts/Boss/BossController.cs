@@ -64,11 +64,6 @@ public class BossController : MonoBehaviour
         // Отключаем объект (или делаем другую логику смерти)
         gameObject.SetActive(false);
         door.gameObject.SetActive(true);
-    }
-    
-    void OnDestroy()
-    {
-        // Unsubscribe from events
         BossActions.onBossDied -= Die;
     }
     
