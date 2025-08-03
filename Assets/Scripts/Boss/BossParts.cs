@@ -9,12 +9,9 @@ public class BossParts : MonoBehaviour
     [SerializeField] private List<SymbiotePart> bossParts;
     [SerializeField] private SymbioteSystem playerSymbioteSystem;
 
-    private void Update()
+    private void Start()
     {
-        if (Input.GetKeyDown(KeyCode.Tab))
-        {
-            Die();
-        }
+        BossActions.onBossDied += Die;
     }
 
     private void Die()

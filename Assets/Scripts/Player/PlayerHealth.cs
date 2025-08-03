@@ -1,9 +1,17 @@
+using System;
 using UnityEngine;
 
 public class PlayerHealth : MonoBehaviour, IDamageable
 {
-    public float health = 100f;
-    
+    public float maxHealth = 100f;
+    private float health;
+
+    private void Start()
+    {
+        health = maxHealth;
+        UIManager.Instance.SetPlayerHP(health, maxHealth);
+    }
+
     public void TakeDamage(float damage)
     {
         health -= damage;
@@ -11,8 +19,10 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         
         if (health <= 0)
         {
+            health = 0;
             Die();
         }
+        UIManager.Instance.SetPlayerHP(health, maxHealth);
     }
     
     void Die()
@@ -20,4 +30,10 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         Debug.Log("Игрок погиб!");
         // Здесь логика смерти игрока
     }
+}
+
+// Интерфейс для объектов, которые могут получать урона
+public interface IDamageable
+{
+    void TakeDamage(float damage);
 }
