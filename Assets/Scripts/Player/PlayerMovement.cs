@@ -259,43 +259,59 @@ public class PlayerMovement : MonoBehaviour
         webRope.SetEndPoint(null);
     }
 
-    // --- Новый метод для отбрасывания ---
-    public void Knockback(Vector3 knockDirection)
+    // --- Обновлённый метод Knockback ---
+public void Knockback(Vector3 knockDirection)
+{
+    // Нормализуем направление и устанавливаем его
+    _knockbackDirection = knockDirection.normalized;
+    _isKnockedback = true;
+    StartCoroutine(KnockbackCoroutine());
+}
+
+// --- Обновлённая корутина KnockbackCoroutine ---
+private IEnumerator KnockbackCoroutine()
+{
+    float elapsedTime = 0f;
+    Vector3 knockbackVelocity = _knockbackDirection * knockbackForce; // Вычисляем вектор скорости отбрасывания
+
+    // --- Добавляем силу отбрасывания к текущему движению, а не заменяем его ---
+    _moveDirection += knockbackVelocity;
+
+    while (elapsedTime < knockbackDuration)
     {
-        // Нормализуем направление и устанавливаем его
-        _knockbackDirection = knockDirection;
-        _isKnockedback = true;
-        StartCoroutine(KnockbackCoroutine());
+        // --- Применяем движение отбрасывания (гравитация всё ещё действует отдельно) ---
+        // _moveDirection.y обрабатывается ApplyGravity, поэтому мы можем двигать только X и Z,
+        // или доверить CharacterController обработку вертикального перемещения на этом этапе.
+        // Для простоты, двигаем по всем осям, но ApplyGravity в Update по-прежнему будет влиять на _moveDirection.y.
+         _controller.Move(_moveDirection * Time.deltaTime);
+
+        elapsedTime += Time.deltaTime;
+        yield return null;
     }
 
-    private IEnumerator KnockbackCoroutine()
+    // --- По окончании отбрасывания постепенно уменьшаем горизонтальную скорость до нуля ---
+    // Сохраняем вертикальную скорость (гравитация должна управлять ей)
+    float originalYVelocity = _moveDirection.y;
+    Vector3 horizontalVelocity = new Vector3(_moveDirection.x, 0, _moveDirection.z);
+    float slowDownDuration = 0.2f; // Длительность затухания
+    float elapsedSlowDownTime = 0f;
+
+    while (elapsedSlowDownTime < slowDownDuration)
     {
-        float elapsedTime = 0f;
-        Vector3 initialVelocity = _knockbackDirection * knockbackForce;
+        float t = elapsedSlowDownTime / slowDownDuration;
+        Vector3 newHorizontalVelocity = Vector3.Lerp(horizontalVelocity, Vector3.zero, t);
+        _moveDirection = new Vector3(newHorizontalVelocity.x, originalYVelocity, newHorizontalVelocity.z);
+        // ApplyGravity в Update продолжает работать
+        _controller.Move(_moveDirection * Time.deltaTime);
 
-        // --- Применяем силу отбрасывания ---
-        _moveDirection = initialVelocity;
-        // --- Отключаем управление гравитацией на время отбрасывания ---
-        // (Или можно оставить ApplyGravity, если хотите, чтобы гравитация действовала)
-        // В этом примере гравитация будет действовать, так как ApplyGravity вызывается в Update
-
-        while (elapsedTime < knockbackDuration)
-        {
-            // --- Можно добавить затухание скорости ---
-            // float t = elapsedTime / knockbackDuration;
-            // _moveDirection = Vector3.Lerp(initialVelocity, Vector3.zero, t);
-
-            // --- Или просто двигаем с постоянной скоростью ---
-             _controller.Move(_moveDirection * Time.deltaTime);
-
-            elapsedTime += Time.deltaTime;
-            yield return null;
-        }
-
-        // --- Сбрасываем скорость и состояние после окончания отбрасывания ---
-        _moveDirection = Vector3.zero; // Или установите нужную скорость после отбрасывания
-        _isKnockedback = false;
+        elapsedSlowDownTime += Time.deltaTime;
+        yield return null;
     }
+
+    // --- Убедимся, что горизонтальная скорость обнулена, а вертикальная остается под гравитацией ---
+    _moveDirection = new Vector3(0, _moveDirection.y, 0); // Обнуляем только горизонтальную составляющую
+    _isKnockedback = false;
+}
 
     public bool IsGrounded() => _controller.isGrounded;
     public Vector3 GetMoveDirection() => _moveDirection;
