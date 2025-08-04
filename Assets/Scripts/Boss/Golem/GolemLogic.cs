@@ -8,6 +8,8 @@ public class GolemBoss : MonoBehaviour
     public float attackRange = 2f;
     public float detectionRange = 15f;
     public Door door;
+
+    public string[] golemDialogue;
     
     [Header("Настройки атаки")]
     public float attackCooldown = 3f;
@@ -32,6 +34,7 @@ public class GolemBoss : MonoBehaviour
 
     void Start()
     {
+        UIManager.Instance.StartDialogue(golemDialogue);
         door.gameObject.SetActive(false);
         warning.SetActive(false);
         if (animator == null)
