@@ -3201,6 +3201,9 @@ MonoBehaviour:
   shootPlace: {fileID: 188365472}
   rotationSpeed: 1
   alwaysFacePlayer: 1
+  deathSound: {fileID: 8300000, guid: 7056de09b01f0fc419c9d57e02f160b1, type: 3}
+  summonSound: {fileID: 8300000, guid: 0e232e99ba458c045bf7c7b26307e9ec, type: 3}
+  audioSource: {fileID: 0}
 --- !u!95 &648607360 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 1f7a27f75f44cd0488e60f05dece7e83, type: 3}

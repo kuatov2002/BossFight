@@ -6042,6 +6042,10 @@ MonoBehaviour:
   attackRadius: 4
   warning: {fileID: 1449824501}
   animator: {fileID: 1867777265}
+  deathSound: {fileID: 0}
+  footstepSound: {fileID: 8300000, guid: bd5f72dd6e6b13c42ad578cedc4707bf, type: 3}
+  attackSound: {fileID: 0}
+  audioSource: {fileID: 0}
 --- !u!4 &1867777268 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 5d42d82c98ce8ee48a5d249aadab1149, type: 3}
@@ -6524,7 +6528,7 @@ MonoBehaviour:
   AnimationFloorLevel: 0.001
   _Editor_Foldout_Setup_LegsList: 1
   _Editor_EnsureCount: 5
-  _Editor_OnValidateTrigger: 1
+  _Editor_OnValidateTrigger: 0
   _EditorAllowAutoUpdateFeetParams: 1
   _EditorCategory: 1
   _EditorSetupCategory: 0
