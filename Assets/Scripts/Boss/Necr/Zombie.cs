@@ -59,6 +59,7 @@ public class Zombie : MonoBehaviour
         if (isDead || player == null) return;
 
         Vector3 direction = (player.position - transform.position).normalized;
+        direction = new Vector3(direction.x, 0, direction.z);
         transform.position += direction * (moveSpeed * Time.deltaTime);
         
         // Поворачиваем зомби в сторону игрока
@@ -94,7 +95,7 @@ public class Zombie : MonoBehaviour
                 var playerMovementScript = hit.gameObject.GetComponent<PlayerMovement>();
                 // Можно немного поднять игрока вверх
                 knockDirection.y = 0f; // Настройте по желанию
-                playerMovementScript.Knockback(knockDirection*2f);
+                playerMovementScript.Knockback(knockDirection*0.4f);
                 // Здесь можно вызвать метод получения урона у игрока
                 // Например: hit.GetComponent<PlayerHealth>().TakeDamage(damage);
                 Debug.Log($"Нанесено {damage} урона игроку");
