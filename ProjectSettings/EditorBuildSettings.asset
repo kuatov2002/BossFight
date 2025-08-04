@@ -17,6 +17,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Dragon.unity
     guid: e3f49c097afb3904fb48155e04894840
+  - enabled: 1
+    path: Assets/Scenes/Necr.unity
+    guid: 4940849e27dfbab4a8ebc06432390306
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
