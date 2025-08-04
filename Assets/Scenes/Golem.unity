@@ -3938,7 +3938,10 @@ MonoBehaviour:
   maxFlashesInSequence: 3
   maxDelayBetweenSubFlashes: 0.2
   audioSource: {fileID: 0}
-  thunderSounds: []
+  thunderSounds:
+  - {fileID: 8300000, guid: 2b944d1354a972e4fa704f0c51c527e0, type: 3}
+  - {fileID: 8300000, guid: fde2079916458ec40a26bfbd23fc5682, type: 3}
+  - {fileID: 8300000, guid: 8c45ec33b5fd216488c6204c302b3750, type: 3}
 --- !u!4 &1059783523
 Transform:
   m_ObjectHideFlags: 0
@@ -8112,7 +8115,7 @@ MonoBehaviour:
   AnimationFloorLevel: 0.001
   _Editor_Foldout_Setup_LegsList: 1
   _Editor_EnsureCount: 5
-  _Editor_OnValidateTrigger: 0
+  _Editor_OnValidateTrigger: 1
   _EditorAllowAutoUpdateFeetParams: 1
   _EditorCategory: 0
   _EditorSetupCategory: 0
