@@ -11,6 +11,8 @@ public class NecromancerBoss : MonoBehaviour
     public float detectionRange = 15f;
     public float actionCooldown = 3f;
     public Animator animator;
+    public string[] necromancerDialogue;
+    public string[] dieDialogue;
     
     [Header("Зоны обзора")]
     [Range(0, 360)]
@@ -39,6 +41,7 @@ public class NecromancerBoss : MonoBehaviour
     private void Start()
     {
         BossActions.onBossDied += Die;
+        UIManager.Instance.StartDialogue(necromancerDialogue);
     }
 
     private void Die()
@@ -46,7 +49,7 @@ public class NecromancerBoss : MonoBehaviour
         isDead = true; // Устанавливаем флаг смерти
         animator.SetTrigger("OnDeath");
         BossActions.onBossDied -= Die;
-        
+        UIManager.Instance.StartDialogue(dieDialogue);
         // Отключаем все корутины и останавливаем действия
         StopAllCoroutines();
         canAct = false;
