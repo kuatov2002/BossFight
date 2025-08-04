@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class DragonLogic : MonoBehaviour
 {
+    public string[] startDialogue;
+    public string[] deathDialogue;
+    
     [Header("Точки полета")]
     public Transform[] flightPoints;        // Точки, куда дракон может взлететь
     public Transform[] landingPoints;       // Точки посадки
@@ -30,6 +33,7 @@ public class DragonLogic : MonoBehaviour
     
     void Start()
     {
+        UIManager.Instance.StartDialogue(startDialogue);
         BossActions.onBossDied -= Die; // Отписываемся на случай, если уже подписан
         BossActions.onBossDied += Die;  // Подписываемся на событие смерти
         door.gameObject.SetActive(false);
@@ -296,7 +300,7 @@ public class DragonLogic : MonoBehaviour
         Debug.Log("Дракон мертв, открываю дверь");
 
         BossActions.onBossDied -= Die; // Отписываемся от события
-
+        UIManager.Instance.StartDialogue(deathDialogue);
         if (animator != null)
         {
             animator.SetTrigger("OnDeath"); // Проигрываем анимацию смерти
