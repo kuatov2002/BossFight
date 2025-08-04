@@ -13,20 +13,24 @@ public class PlayerMovement : MonoBehaviour
     public float gravity = 20f;
     [SerializeField] private Transform followTarget;
     [SerializeField] private Animator animator;
-    [SerializeField] private Animator wingsAnimator; 
+    [SerializeField] private Animator wingsAnimator;
     [SerializeField] private Transform geometry;
-
     [Header("Rotation Settings")]
     public float rotationSpeed = 10f;
-
     [Header("Spider Settings")]
     [SerializeField] private Rope webRope;
     public bool canShootWeb = true;
-
+    public bool haveDragonAbility = false;
     // --- Новое поле для силы отбрасывания ---
     [Header("Knockback Settings")]
     public float knockbackForce = 10f; // Сила отбрасывания
     public float knockbackDuration = 0.5f; // Длительность отбрасывания (необязательно)
+
+    // --- Новые поля для кулдауна прыжка дракона ---
+    private bool _isDragonJumpOnCooldown = false;
+    private float _dragonJumpCooldownDuration = 5.0f;
+    private float _dragonJumpCooldownEndTime = 0f;
+    // -------------------------------------------------
 
     private CharacterController _controller;
     private Vector3 _moveDirection;
@@ -35,10 +39,14 @@ public class PlayerMovement : MonoBehaviour
     private int _currentJumpCount;
     private bool _isWebDashing = false;
     private Vector3 _lastMoveInput; // Сохраняем последний вектор движения
-
     // --- Новое поле для состояния отбрасывания ---
     private bool _isKnockedback = false;
     private Vector3 _knockbackDirection; // Направление отбрасывания
+
+    // --- Новые поля для кулдауна выстрела паутиной ---
+    private float _lastWebShootTime = 0f; // Время последнего выстрела
+    public float webCooldown = 4.0f; // Длительность кулдауна в секундах
+    // --------------------------------------------------
 
     void Start()
     {
@@ -52,61 +60,62 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         ApplyGravity();
+
+        // --- Проверяем, не закончился ли кулдаун прыжка дракона ---
+        if (_isDragonJumpOnCooldown && Time.time >= _dragonJumpCooldownEndTime)
+        {
+            _isDragonJumpOnCooldown = false;
+            // Можно добавить логику по окончании кулдауна, если нужно
+            // Debug.Log("Прыжок дракона снова доступен");
+        }
+        // -----------------------------------------------------------
+
         // --- Блокируем управление во время отбрасывания ---
         if (!_isDashing && !_isKnockedback)
         {
             HandleMouseLook();
         }
-
         if (Input.GetKeyDown(KeyCode.F))
         {
             ShootWeb();
         }
-
         // Передача параметров в аниматор
         // --- Также блокируем анимацию движения во время отбрасывания ---
-         // --- Обновленный блок передачи параметров в оба аниматора ---
-    float currentSpeed = new Vector3(_moveDirection.x, 0, _moveDirection.z).magnitude;
-    bool isGrounded = _controller.isGrounded;
-    float verticalVelocity = _moveDirection.y;
-
-    if (!_isKnockedback)
-    {
-        animator.SetFloat("Speed", currentSpeed);
-        if (wingsAnimator != null) wingsAnimator.SetFloat("Speed", currentSpeed);
+        // --- Обновленный блок передачи параметров в оба аниматора ---
+        float currentSpeed = new Vector3(_moveDirection.x, 0, _moveDirection.z).magnitude;
+        bool isGrounded = _controller.isGrounded;
+        float verticalVelocity = _moveDirection.y;
+        if (!_isKnockedback)
+        {
+            animator.SetFloat("Speed", currentSpeed);
+            if (wingsAnimator != null) wingsAnimator.SetFloat("Speed", currentSpeed);
+        }
+        animator.SetBool("IsGrounded", isGrounded);
+        if (wingsAnimator != null) wingsAnimator.SetBool("IsGrounded", isGrounded);
+        animator.SetFloat("VerticalVelocity", verticalVelocity);
+        if (wingsAnimator != null) wingsAnimator.SetFloat("VerticalVelocity", verticalVelocity);
+        if (!_isKnockedback)
+        {
+            RotatePlayerGeometry();
+        }
     }
-    animator.SetBool("IsGrounded", isGrounded);
-    if (wingsAnimator != null) wingsAnimator.SetBool("IsGrounded", isGrounded);
-    
-    animator.SetFloat("VerticalVelocity", verticalVelocity);
-    if (wingsAnimator != null) wingsAnimator.SetFloat("VerticalVelocity", verticalVelocity);
-
-    if (!_isKnockedback)
-    {
-        RotatePlayerGeometry();
-    }
-}
 
     // --- Обновленный HandleMovement с проверкой на отбрасывание ---
     public void HandleMovement(Vector3 input)
     {
         // --- Не двигаем игрока, если он отбрасывается ---
         if (_isKnockedback) return;
-
         AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
         if (stateInfo.IsName("Hit1") || stateInfo.IsName("Hit2") || stateInfo.IsName("Hit3"))
         {
             return;
         }
-
         // Сохраняем вектор ввода для поворота
         _lastMoveInput = input;
-
         if (!_isDashing)
         {
             if (input.magnitude > 1f)
                 input.Normalize();
-
             Vector3 forward = Camera.main.transform.forward;
             Vector3 right = Camera.main.transform.right;
             forward.y = 0f;
@@ -117,10 +126,8 @@ public class PlayerMovement : MonoBehaviour
             _moveDirection.x = move.x * moveSpeed;
             _moveDirection.z = move.z * moveSpeed;
         }
-        
         _controller.Move(_moveDirection * Time.deltaTime);
     }
-
 
     private void RotatePlayerGeometry()
     {
@@ -157,17 +164,64 @@ public class PlayerMovement : MonoBehaviour
     }
 
     public void Jump()
-{
-    if (_isKnockedback) return;
-
-    if (_currentJumpCount > 0)
     {
-        _moveDirection.y = jumpForce;
-        _currentJumpCount--;
-        animator.SetTrigger("Jump"); // Запуск анимации прыжка у персонажа
-        if (wingsAnimator != null) wingsAnimator.SetTrigger("Jump"); // <--- И у крыльев
+        // Блокируем прыжок во время отбрасывания
+        if (_isKnockedback) return;
+        if (_currentJumpCount > 0)
+        {
+            _moveDirection.y = jumpForce;
+            // --- Обновленный блок логики прыжков ---
+            if (_currentJumpCount == 2)
+            {
+                Debug.Log("Первый прыжок!");
+            }
+            else if (_currentJumpCount == 1)
+            {
+                Debug.Log("Второй прыжок!");
+                // --- Проверяем наличие способности и кулдаун перед вызовом ---
+                if (haveDragonAbility && !_isDragonJumpOnCooldown)
+                {
+                    DragonJump();
+                    // --- Активируем кулдаун прыжка дракона ---
+                    _isDragonJumpOnCooldown = true;
+                    _dragonJumpCooldownEndTime = Time.time + _dragonJumpCooldownDuration;
+                    UIManager.Instance.ActiveAbility(2); // Предполагая, что 0 - это индекс способности дракона
+                }
+                else if (haveDragonAbility && _isDragonJumpOnCooldown)
+                {
+                    // Опционально: можно залогировать попытку использования способности на кулдауне
+                    // Debug.Log("Попытка использовать прыжок дракона, но он на кулдауне.");
+                }
+                // ---------------------------------------------------------------
+            }
+            // ----------------------------------------------------
+            _currentJumpCount--; // Уменьшаем счетчик после проверки
+            animator.SetTrigger("Jump"); // Запуск анимации прыжка у персонажа
+            if (wingsAnimator != null) wingsAnimator.SetTrigger("Jump"); // <--- И у крыльев
+        }
+        else
+        {
+            // Опционально: можно залогировать попытку прыжка без возможности
+            // Debug.Log("Попытка прыжка, но прыжков больше нет.");
+        }
     }
-}
+
+    private void DragonJump()
+    {
+        Vector3 attackPosition = transform.position;
+        Collider[] hitEnemies = Physics.OverlapSphere(attackPosition, 6);
+        foreach (Collider enemy in hitEnemies)
+        {
+            if (enemy.GetComponent<BossHealth>() != null)
+            {
+                enemy.GetComponent<BossHealth>().TakeDamage(5f);
+            }
+            else if (enemy.GetComponent<Zombie>() != null)
+            {
+                enemy.GetComponent<Zombie>().TakeDamage();
+            }
+        }
+    }
 
     void ApplyGravity()
     {
@@ -184,27 +238,25 @@ public class PlayerMovement : MonoBehaviour
     }
 
     public void StartDash(Vector3 dashVelocity)
-{
-    if (_isKnockedback) return;
-
-    _moveDirection = dashVelocity;
-    _isDashing = true;
-    animator.SetBool("IsDashing", true);
-    if (wingsAnimator != null) wingsAnimator.SetBool("IsDashing", true); // <--- И у крыльев
-}
+    {
+        if (_isKnockedback) return;
+        _moveDirection = dashVelocity;
+        _isDashing = true;
+        animator.SetBool("IsDashing", true);
+        if (wingsAnimator != null) wingsAnimator.SetBool("IsDashing", true); // <--- И у крыльев
+    }
 
     public void EndDash()
-{
-    _isDashing = false;
-    animator.SetBool("IsDashing", false);
-    if (wingsAnimator != null) wingsAnimator.SetBool("IsDashing", false); // <--- И у крыльев
-}
+    {
+        _isDashing = false;
+        animator.SetBool("IsDashing", false);
+        if (wingsAnimator != null) wingsAnimator.SetBool("IsDashing", false); // <--- И у крыльев
+    }
 
-// --- Добавьте это в секцию полей класса вверху, рядом с другими приватными переменными ---
-    private float _lastWebShootTime = 0f; // Время последнего выстрела
-    public float webCooldown = 4.0f; // Длительность кулдауна в секундах (можно сделать SerializeField, если нужна настройка в инспекторе)
-
-// --- Добавьте этот вспомогательный метод для проверки кулдауна ---
+    // --- Добавьте это в секцию полей класса вверху, рядом с другими приватными переменными ---
+    // private float _lastWebShootTime = 0f; // Время последнего выстрела (уже есть выше)
+    // public float webCooldown = 4.0f; // Длительность кулдауна в секундах (уже есть выше)
+    // --- Добавьте этот вспомогательный метод для проверки кулдауна ---
     private bool IsWebCooldownReady()
     {
         return (Time.time - _lastWebShootTime) >= webCooldown;
@@ -220,7 +272,6 @@ public class PlayerMovement : MonoBehaviour
         UIManager.Instance.ActiveAbility(1);
         Vector3 rayOrigin = Camera.main.transform.position;
         Vector3 rayDirection = Camera.main.transform.forward;
-
         if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, 100f))
         {
             Vector3 directionToHit = (hit.point - transform.position).normalized;
@@ -228,22 +279,16 @@ public class PlayerMovement : MonoBehaviour
             float webSpeed = 30f;
             float travelTime = distance / webSpeed;
             travelTime = travelTime > 0.2f ? travelTime : 0.2f;
-
             Vector3 impulse = directionToHit * webSpeed;
             StartDash(impulse);
-
             webRope.RecalculateRope();
-
             GameObject emptyObject = new GameObject("WebTarget");
             emptyObject.transform.position = hit.point;
             webRope.SetEndPoint(emptyObject.transform);
             webRope.ropeLength = distance;
-
             _isWebDashing = true;
-        
             // --- Обновляем время последнего выстрела ---
             _lastWebShootTime = Time.time;
-        
             Invoke(nameof(StopWebDash), travelTime);
         }
     }
@@ -304,10 +349,8 @@ public class PlayerMovement : MonoBehaviour
     {
         float elapsedTime = 0f;
         Vector3 knockbackVelocity = _knockbackDirection * knockbackForce; // Вычисляем вектор скорости отбрасывания
-
         // --- Добавляем силу отбрасывания к текущему движению, а не заменяем его ---
         _moveDirection += knockbackVelocity;
-
         while (elapsedTime < knockbackDuration)
         {
             // --- Применяем движение отбрасывания (гравитация всё ещё действует отдельно) ---
@@ -315,18 +358,15 @@ public class PlayerMovement : MonoBehaviour
             // или доверить CharacterController обработку вертикального перемещения на этом этапе.
             // Для простоты, двигаем по всем осям, но ApplyGravity в Update по-прежнему будет влиять на _moveDirection.y.
             _controller.Move(_moveDirection * Time.deltaTime);
-
             elapsedTime += Time.deltaTime;
             yield return null;
         }
-
         // --- По окончании отбрасывания постепенно уменьшаем горизонтальную скорость до нуля ---
         // Сохраняем вертикальную скорость (гравитация должна управлять ей)
         float originalYVelocity = _moveDirection.y;
         Vector3 horizontalVelocity = new Vector3(_moveDirection.x, 0, _moveDirection.z);
         float slowDownDuration = 0.2f; // Длительность затухания
         float elapsedSlowDownTime = 0f;
-
         while (elapsedSlowDownTime < slowDownDuration)
         {
             float t = elapsedSlowDownTime / slowDownDuration;
@@ -334,11 +374,9 @@ public class PlayerMovement : MonoBehaviour
             _moveDirection = new Vector3(newHorizontalVelocity.x, originalYVelocity, newHorizontalVelocity.z);
             // ApplyGravity в Update продолжает работать
             _controller.Move(_moveDirection * Time.deltaTime);
-
             elapsedSlowDownTime += Time.deltaTime;
             yield return null;
         }
-
         // --- Убедимся, что горизонтальная скорость обнулена, а вертикальная остается под гравитацией ---
         _moveDirection = new Vector3(0, _moveDirection.y, 0); // Обнуляем только горизонтальную составляющую
         _isKnockedback = false;
@@ -346,4 +384,11 @@ public class PlayerMovement : MonoBehaviour
 
     public bool IsGrounded() => _controller.isGrounded;
     public Vector3 GetMoveDirection() => _moveDirection;
+
+    // --- Вспомогательный метод для проверки доступности прыжка дракона ---
+    public bool IsDragonJumpAvailable()
+    {
+        return haveDragonAbility && !_isDragonJumpOnCooldown;
+    }
+    // ----------------------------------------------------------------------
 }

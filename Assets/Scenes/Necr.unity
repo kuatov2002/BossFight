@@ -5167,7 +5167,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 6
   jumpForce: 8
-  jumpCount: 1
+  jumpCount: 2
   gravity: 20
   followTarget: {fileID: 1261983500}
   animator: {fileID: 1207311961}
@@ -5176,6 +5176,7 @@ MonoBehaviour:
   rotationSpeed: 10
   webRope: {fileID: 676006773}
   canShootWeb: 1
+  haveDragonAbility: 1
   knockbackForce: 10
   knockbackDuration: 0.5
   webCooldown: 4
@@ -9716,7 +9717,7 @@ MonoBehaviour:
   AnimationFloorLevel: 0.001
   _Editor_Foldout_Setup_LegsList: 1
   _Editor_EnsureCount: 5
-  _Editor_OnValidateTrigger: 1
+  _Editor_OnValidateTrigger: 0
   _EditorAllowAutoUpdateFeetParams: 1
   _EditorCategory: 0
   _EditorSetupCategory: 0
