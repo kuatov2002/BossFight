@@ -4551,7 +4551,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 6
   jumpForce: 8
-  jumpCount: 1
+  jumpCount: 2
   gravity: 20
   followTarget: {fileID: 1261983500}
   animator: {fileID: 1207311961}
@@ -4560,8 +4560,10 @@ MonoBehaviour:
   rotationSpeed: 10
   webRope: {fileID: 676006773}
   canShootWeb: 1
+  haveDragonAbility: 1
   knockbackForce: 10
   knockbackDuration: 0.5
+  webCooldown: 4
 --- !u!114 &1207311967
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7924,6 +7926,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b8d1adda6103234b87b244be0b06e40, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isHaveShield: 1
   maxHealth: 100
 --- !u!114 &919132148080517896
 MonoBehaviour:
@@ -8463,7 +8466,7 @@ MonoBehaviour:
   AnimationFloorLevel: 0.001
   _Editor_Foldout_Setup_LegsList: 1
   _Editor_EnsureCount: 5
-  _Editor_OnValidateTrigger: 1
+  _Editor_OnValidateTrigger: 0
   _EditorAllowAutoUpdateFeetParams: 1
   _EditorCategory: 0
   _EditorSetupCategory: 0
