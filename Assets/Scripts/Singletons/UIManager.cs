@@ -9,12 +9,14 @@ public class UIManager : MonoBehaviour
     public Image playerHP;
 
     public DialogueManager dialogueManager;
+
+    public AbilityManager abilityManager;
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(this.gameObject);
+            DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -31,5 +33,15 @@ public class UIManager : MonoBehaviour
     public void StartDialogue(string[] lines)
     {
         dialogueManager.StartDialogue(lines);
+    }
+
+    public void UnlockAbility(int index)
+    {
+        abilityManager.Unlock(index);
+    }
+
+    public void ActiveAbility(int index)
+    {
+        abilityManager.ActivateAbility(index);
     }
 }
