@@ -2038,7 +2038,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04ceaa11fc7eed245801bfd1544cb2fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 240
+  maxHealth: 160
   bossName: "\u041D\u0435\u043A\u0440\u043E\u0441"
 --- !u!65 &407042763
 BoxCollider:

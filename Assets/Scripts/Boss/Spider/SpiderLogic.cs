@@ -28,7 +28,8 @@ public class SpiderLogic : MonoBehaviour
     public Transform shootPoint; // Точка, из которой будет производиться выстрел
     public float returnToDefaultTime = 12f; // Время в секундах до возврата на позицию по умолчанию
     public float defaultDuration = 4f;
-
+    public string[] spiderDialogue;
+    
     // --- Ссылка на скрипт игрока ---
     private PlayerMovement playerMovementScript;
     private PlayerHealth _playerHealth;
@@ -46,6 +47,7 @@ public class SpiderLogic : MonoBehaviour
 
     void Start()
     {
+        UIManager.Instance.StartDialogue(spiderDialogue);
         BossActions.onBossDied -= Die; // Сначала отписываемся (на всякий случай)
         BossActions.onBossDied += Die;  // Потом подписываемся
         Debug.Log("SpiderLogic подписался на событие onBossDied");

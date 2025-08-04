@@ -32,6 +32,9 @@ public class NecromancerBoss : MonoBehaviour
     private bool canAct = true;
     private Color gizmoColor = Color.white;
     private float lastActionTime = 0f;
+    
+    // Новое поле для отслеживания состояния смерти
+    private bool isDead = false;
 
     private void Start()
     {
@@ -40,11 +43,20 @@ public class NecromancerBoss : MonoBehaviour
 
     private void Die()
     {
+        isDead = true; // Устанавливаем флаг смерти
+        animator.SetTrigger("OnDeath");
         BossActions.onBossDied -= Die;
+        
+        // Отключаем все корутины и останавливаем действия
+        StopAllCoroutines();
+        canAct = false;
     }
 
     void Update()
     {
+        // Если босс мертв, ничего не делаем
+        if (isDead) return;
+        
         if (player == null) return;
 
         // Поворачиваем некроманта к игроку
@@ -105,6 +117,9 @@ public class NecromancerBoss : MonoBehaviour
 
     IEnumerator PerformAction()
     {
+        // Дополнительная проверка на смерть перед началом действия
+        if (isDead) yield break;
+        
         canAct = false;
         lastActionTime = Time.time;
         
@@ -121,7 +136,6 @@ public class NecromancerBoss : MonoBehaviour
                 break;
         }
         
-
         yield return new WaitForSeconds(actionCooldown);
         canAct = true;
     }
@@ -135,6 +149,9 @@ public class NecromancerBoss : MonoBehaviour
 
     void ExecuteAttack() // вызывается через Animation Events
     {
+        // Проверка на смерть
+        if (isDead) return;
+        
         if (player == null) return;
     
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
@@ -153,14 +170,21 @@ public class NecromancerBoss : MonoBehaviour
             Debug.Log("Атака промахнулась - игрок вне зоны или не виден!");
         }
     }
+    
     void CastFireball()
     {
+        // Проверка на смерть
+        if (isDead) return;
+        
         animator.SetTrigger("Fireball");
         Debug.Log("Некромант кастует фаербол!");
     }
 
     public void ExecuteFireball()
     {
+        // Проверка на смерть
+        if (isDead) return;
+        
         var fireball = Instantiate(fireballPrefab, shootPlace.position, Quaternion.identity);
         var fireScript = fireball.GetComponent<FireBreath>();
         Vector3 directionToPlayer = (player.position - shootPlace.position).normalized;
@@ -172,6 +196,9 @@ public class NecromancerBoss : MonoBehaviour
     
     void SummonCreatures()
     {
+        // Проверка на смерть
+        if (isDead) return;
+        
         animator.SetTrigger("Summon");
         foreach (var point in pointsForSummon)
         {
@@ -247,5 +274,11 @@ public class NecromancerBoss : MonoBehaviour
                 
             Gizmos.DrawSphere(player.position, 0.5f);
         }
+    }
+    
+    // Добавляем OnDestroy для очистки событий
+    private void OnDestroy()
+    {
+        BossActions.onBossDied -= Die;
     }
 }

@@ -21,6 +21,8 @@ public class BossController : MonoBehaviour
     public Transform player;
     public Animator animator;
     public Door door;
+
+    public string[] lines;
     
     private bool isAttacking = false;
     private bool isRecovering = false;
@@ -37,6 +39,8 @@ public class BossController : MonoBehaviour
             
         if (player == null)
             player = GameObject.FindGameObjectWithTag("Player").transform;
+        
+        UIManager.Instance.StartDialogue(lines);
     }
     
     // Вызывается в конце анимации атаки (только для дальней атаки)
