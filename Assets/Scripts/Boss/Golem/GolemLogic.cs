@@ -10,18 +10,24 @@ public class GolemBoss : MonoBehaviour
     public Door door;
 
     public string[] golemDialogue;
-    
+
     [Header("Настройки атаки")]
     public float attackCooldown = 3f;
     public int attackDamage = 20;
     public float attackRadius = 3f;
     public GameObject warning;
-    
+
     [Header("Анимации")]
     public Animator animator;
     private float lastAttackTime;
     private bool isAttacking = false;
     private bool shouldMoveAfterAttack = false;
+
+    [Header("Звуки")]
+    public AudioClip deathSound;         // Звук смерти
+    public AudioClip footstepSound;      // Звук шага
+    public AudioClip attackSound;        // Звук атаки
+    public AudioSource audioSource;      // Источник звука
 
     // Новый флаг смерти
     private bool isDead = false;
@@ -37,14 +43,23 @@ public class GolemBoss : MonoBehaviour
         UIManager.Instance.StartDialogue(golemDialogue);
         door.gameObject.SetActive(false);
         warning.SetActive(false);
+
         if (animator == null)
         {
             animator = GetComponent<Animator>();
         }
+
         if (player == null)
         {
             player = GameObject.FindGameObjectWithTag("Player").transform;
         }
+
+        // Настройка AudioSource
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+
         lastAttackTime = -attackCooldown;
 
         BossActions.onBossDied += Die;
@@ -83,6 +98,7 @@ public class GolemBoss : MonoBehaviour
             {
                 MoveTowardsPlayer();
                 SetAnimationMovement(true);
+                PlayFootstepSound(); // Проигрывать звук шагов при движении
             }
         }
         else if (!isAttacking)
@@ -114,6 +130,10 @@ public class GolemBoss : MonoBehaviour
         shouldMoveAfterAttack = false;
 
         SetAnimationAttack(true);
+
+        // Проигрываем звук атаки
+        if (attackSound != null && audioSource != null)
+            audioSource.PlayOneShot(attackSound);
 
         float animationLength = 3.0f;
         float damageDelay = 0.9f;
@@ -213,6 +233,24 @@ public class GolemBoss : MonoBehaviour
         }
     }
 
+    // --- НОВЫЕ МЕТОДЫ ДЛЯ ВОСПРОИЗВЕДЕНИЯ ЗВУКОВ ---
+
+    void PlayFootstepSound()
+    {
+        if (footstepSound != null && audioSource != null && !audioSource.isPlaying)
+        {
+            audioSource.PlayOneShot(footstepSound);
+        }
+    }
+
+    void PlayDeathSound()
+    {
+        if (deathSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(deathSound);
+        }
+    }
+
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
@@ -231,6 +269,7 @@ public class GolemBoss : MonoBehaviour
         isDead = true;
         UIManager.Instance.UnlockAbility(0);
         PlayDeathAnimation();
+        PlayDeathSound(); // Воспроизводим звук смерти
 
         // Останавливаем все корутины, если нужно
         StopAllCoroutines();

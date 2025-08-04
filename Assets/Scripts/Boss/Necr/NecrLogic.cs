@@ -13,28 +13,33 @@ public class NecromancerBoss : MonoBehaviour
     public Animator animator;
     public string[] necromancerDialogue;
     public string[] dieDialogue;
-    
+
     [Header("Зоны обзора")]
     [Range(0, 360)]
     public float frontAngle = 90f;
 
-    [Header("Призыв")] 
+    [Header("Призыв")]
     public List<Transform> pointsForSummon;
     public GameObject zombiePrefab;
 
-    [Header("Фаербол")] 
+    [Header("Фаербол")]
     public GameObject fireballPrefab;
     public Transform shootPlace;
-    
+
     // Новые параметры для поворота
     [Header("Поворот")]
     public float rotationSpeed = 5f;
     public bool alwaysFacePlayer = true;
-    
+
+    [Header("Звуки")]
+    public AudioClip deathSound;         // Звук смерти
+    public AudioClip summonSound;        // Звук призыва
+    [HideInInspector] public AudioSource audioSource; // Источник звука
+
     private bool canAct = true;
     private Color gizmoColor = Color.white;
     private float lastActionTime = 0f;
-    
+
     // Новое поле для отслеживания состояния смерти
     private bool isDead = false;
 
@@ -42,11 +47,25 @@ public class NecromancerBoss : MonoBehaviour
     {
         BossActions.onBossDied += Die;
         UIManager.Instance.StartDialogue(necromancerDialogue);
+
+        // --- Настройка AudioSource ---
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
     }
 
     private void Die()
     {
+        // --- Проверка на повторный вызов ---
+        if (isDead) return;
+
         isDead = true; // Устанавливаем флаг смерти
+
+        // --- Воспроизведение звука смерти ---
+        PlayDeathSound();
+
         animator.SetTrigger("OnDeath");
         BossActions.onBossDied -= Die;
         UIManager.Instance.StartDialogue(dieDialogue);
@@ -59,7 +78,7 @@ public class NecromancerBoss : MonoBehaviour
     {
         // Если босс мертв, ничего не делаем
         if (isDead) return;
-        
+
         if (player == null) return;
 
         // Поворачиваем некроманта к игроку
@@ -81,10 +100,10 @@ public class NecromancerBoss : MonoBehaviour
     void FacePlayer()
     {
         Vector3 directionToPlayer = (player.position - transform.position).normalized;
-        
+
         // Обнуляем Y компоненту, чтобы персонаж не наклонялся
         directionToPlayer.y = 0;
-        
+
         if (directionToPlayer != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
@@ -122,10 +141,10 @@ public class NecromancerBoss : MonoBehaviour
     {
         // Дополнительная проверка на смерть перед началом действия
         if (isDead) yield break;
-        
+
         canAct = false;
         lastActionTime = Time.time;
-        
+
         int action = Random.Range(0, 2);
 
         switch (action)
@@ -138,7 +157,7 @@ public class NecromancerBoss : MonoBehaviour
                 CastFireball();
                 break;
         }
-        
+
         yield return new WaitForSeconds(actionCooldown);
         canAct = true;
     }
@@ -154,12 +173,12 @@ public class NecromancerBoss : MonoBehaviour
     {
         // Проверка на смерть
         if (isDead) return;
-        
+
         if (player == null) return;
-    
+
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         bool isPlayerInFront = IsPlayerInFront();
-    
+
         // Проверяем, находится ли игрок в зоне ближнего боя и в поле зрения
         if (distanceToPlayer <= meleeRange && isPlayerInFront)
         {
@@ -173,12 +192,12 @@ public class NecromancerBoss : MonoBehaviour
             Debug.Log("Атака промахнулась - игрок вне зоны или не виден!");
         }
     }
-    
+
     void CastFireball()
     {
         // Проверка на смерть
         if (isDead) return;
-        
+
         animator.SetTrigger("Fireball");
         Debug.Log("Некромант кастует фаербол!");
     }
@@ -187,28 +206,64 @@ public class NecromancerBoss : MonoBehaviour
     {
         // Проверка на смерть
         if (isDead) return;
-        
+
         var fireball = Instantiate(fireballPrefab, shootPlace.position, Quaternion.identity);
         var fireScript = fireball.GetComponent<FireBreath>();
         Vector3 directionToPlayer = (player.position - shootPlace.position).normalized;
         fireScript.SetDirection(directionToPlayer);
-                
+
         // Устанавливаем цель для отслеживания
         fireScript.SetTarget(player);
     }
-    
+
     void SummonCreatures()
     {
         // Проверка на смерть
         if (isDead) return;
-        
+
         animator.SetTrigger("Summon");
+
+        // --- Воспроизведение звука призыва ---
+        PlaySummonSound();
+
         foreach (var point in pointsForSummon)
         {
             var zombie = Instantiate(zombiePrefab, point.position, Quaternion.identity);
             zombie.GetComponent<Zombie>().player = player;
         }
         Debug.Log("Некромант призывает существ!");
+    }
+
+    // --- Новые методы для воспроизведения звуков ---
+
+    /// <summary>
+    /// Воспроизводит звук смерти.
+    /// </summary>
+    public void PlayDeathSound()
+    {
+        if (deathSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(deathSound);
+        }
+        else if (deathSound == null)
+        {
+            Debug.LogWarning("Death sound is not assigned for the Necromancer!");
+        }
+    }
+
+    /// <summary>
+    /// Воспроизводит звук призыва.
+    /// </summary>
+    public void PlaySummonSound()
+    {
+        if (summonSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(summonSound);
+        }
+        else if (summonSound == null)
+        {
+            Debug.LogWarning("Summon sound is not assigned for the Necromancer!");
+        }
     }
 
     // ГИЗМОСЫ
@@ -248,7 +303,7 @@ public class NecromancerBoss : MonoBehaviour
             float angle = Mathf.Lerp(-frontAngle * 0.5f, frontAngle * 0.5f, t);
             Vector3 direction = Quaternion.Euler(0, angle, 0) * forward;
             Vector3 point = transform.position + direction * detectionRange;
-            
+
             Gizmos.DrawLine(previousPoint, point);
             previousPoint = point;
         }
@@ -262,10 +317,10 @@ public class NecromancerBoss : MonoBehaviour
         {
             Gizmos.color = Color.cyan;
             Gizmos.DrawLine(transform.position, player.position);
-            
+
             bool inFront = IsPlayerInFront();
             float distance = Vector3.Distance(transform.position, player.position);
-            
+
             if (inFront && distance <= meleeRange)
                 Gizmos.color = Color.red;
             else if (distance <= detectionRange)
@@ -274,11 +329,11 @@ public class NecromancerBoss : MonoBehaviour
                 Gizmos.color = new Color(1, 0.5f, 0);
             else
                 Gizmos.color = Color.gray;
-                
+
             Gizmos.DrawSphere(player.position, 0.5f);
         }
     }
-    
+
     // Добавляем OnDestroy для очистки событий
     private void OnDestroy()
     {

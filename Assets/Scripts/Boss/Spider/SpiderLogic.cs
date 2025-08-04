@@ -24,12 +24,20 @@ public class SpiderLogic : MonoBehaviour
     public Transform defaultPosition;
     public float smoothMoveSpeed = 30f; // Скорость плавного перемещения
     public float smoothRotationSpeed = 50f; // Скорость плавного поворота
+
+    // --- Поля для звуков ---
+    [Header("Звуки")]
+    public AudioClip deathSound;         // Звук смерти
+    public AudioClip webShootSound;      // Звук выстрела паутины
+    public AudioClip movementSound;      // Звук движения
+    [HideInInspector] public AudioSource audioSource; // Источник звука (HideInInspector, чтобы не засорять инспектор, если не нужно)
+
     public GameObject webPrefab;
     public Transform shootPoint; // Точка, из которой будет производиться выстрел
     public float returnToDefaultTime = 12f; // Время в секундах до возврата на позицию по умолчанию
     public float defaultDuration = 4f;
     public string[] spiderDialogue;
-    
+
     // --- Ссылка на скрипт игрока ---
     private PlayerMovement playerMovementScript;
     private PlayerHealth _playerHealth;
@@ -48,6 +56,7 @@ public class SpiderLogic : MonoBehaviour
     void Start()
     {
         UIManager.Instance.StartDialogue(spiderDialogue);
+
         BossActions.onBossDied -= Die; // Сначала отписываемся (на всякий случай)
         BossActions.onBossDied += Die;  // Потом подписываемся
         Debug.Log("SpiderLogic подписался на событие onBossDied");
@@ -67,6 +76,13 @@ public class SpiderLogic : MonoBehaviour
 
         _playerHealth = player.GetComponent<PlayerHealth>();
 
+        // --- Настройка AudioSource ---
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+
         //StartCoroutine(MoveTowardsPlayerRoutine());
         _moveCoroutine = StartCoroutine(SmoothMoveToWayPointWithShooting(0));
     }
@@ -77,7 +93,7 @@ public class SpiderLogic : MonoBehaviour
         while (Time.time - startTime < duration) // Бесконечный цикл движения
         {
             // --- Проверка на смерть ---
-            if (isDead) yield break; 
+            if (isDead) yield break;
 
             // Получаем текущее направление к игроку
             Vector3 directionToPlayer = (player.position - transform.position).normalized;
@@ -100,11 +116,25 @@ public class SpiderLogic : MonoBehaviour
                 // Движение в запомненном направлении
                 transform.position += moveDirection * moveSpeed * Time.deltaTime;
                 transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime, Space.Self);
+
+                // --- Воспроизведение звука движения ---
+                // Пример: воспроизводить звук каждые 0.5 секунды, если он не играет
+                // Это можно улучшить с помощью InvokeRepeating или проверки расстояния
+                if (movementSound != null && audioSource != null && !audioSource.isPlaying)
+                {
+                     // Простой способ: воспроизводим при каждом кадре движения (может быть часто)
+                     // PlayMovementSound();
+                     // Более точный способ: воспроизводим по таймеру или событию
+                     // Пока оставим простой вариант или закомментируем, если нужно вызывать иначе
+                }
+
                 elapsed += Time.deltaTime;
                 yield return null;
             }
+
             // После 3 секунд или столкновения со стеной цикл повторяется - снова получаем новое направление
         }
+
         // --- Проверка на смерть перед запуском следующей корутины ---
         if (!isDead)
             StartCoroutine(SmoothMoveToWayPointWithShooting(0));
@@ -118,11 +148,10 @@ public class SpiderLogic : MonoBehaviour
     {
         yield return new WaitForSeconds(isFirstAttack ? 2f : defaultDuration);
         isFirstAttack = false;
-
         while (true) // Бесконечный цикл
         {
             // --- Проверка на смерть ---
-            if (isDead) yield break; 
+            if (isDead) yield break;
 
             if (wayPoints.Count == 0)
             {
@@ -153,11 +182,17 @@ public class SpiderLogic : MonoBehaviour
 
                 // Плавное перемещение к точке
                 transform.position = Vector3.MoveTowards(transform.position, targetWayPoint.position, smoothMoveSpeed * Time.deltaTime);
+
+                // --- Воспроизведение звука движения ---
+                // Аналогично как в MoveTowardsPlayerRoutine, можно вызывать здесь
+                // PlayMovementSound(); // Пример вызова
+
                 yield return null;
             }
 
             // --- Проверка на смерть ---
             if (isDead) yield break;
+
             if (_isReturningToDefault) break;
 
             // Когда достигли точки, копируем её точный поворот
@@ -192,7 +227,7 @@ public class SpiderLogic : MonoBehaviour
         yield return new WaitForSeconds(returnToDefaultTime);
 
         // --- Проверка на смерть ---
-        if (isDead) yield break; 
+        if (isDead) yield break;
 
         if (defaultPosition != null && !_isReturningToDefault)
         {
@@ -208,11 +243,11 @@ public class SpiderLogic : MonoBehaviour
             yield return StartCoroutine(SmoothMoveToDefaultPosition());
 
             // --- Проверка на смерть ---
-            if (isDead) yield break; 
+            if (isDead) yield break;
 
             // После возврата продолжаем движение по точкам
             _isReturningToDefault = false;
-            
+
             // --- Проверка на смерть перед запуском следующей корутины ---
             if (!isDead)
                 yield return StartCoroutine(MoveTowardsPlayerRoutine(returnToDefaultTime));
@@ -230,7 +265,7 @@ public class SpiderLogic : MonoBehaviour
         while (Vector3.Distance(transform.position, defaultPosition.position) > 0.1f)
         {
             // --- Проверка на смерть ---
-            if (isDead) yield break; 
+            if (isDead) yield break;
 
             // Плавный поворот к ориентации позиции по умолчанию
             Vector3 directionToTarget = (defaultPosition.position - transform.position).normalized;
@@ -239,15 +274,20 @@ public class SpiderLogic : MonoBehaviour
 
             // Плавное перемещение к позиции по умолчанию
             transform.position = Vector3.MoveTowards(transform.position, defaultPosition.position, smoothMoveSpeed * Time.deltaTime);
+
+            // --- Воспроизведение звука движения ---
+            // PlayMovementSound(); // Пример вызова
+
             yield return null;
         }
 
         // --- Проверка на смерть ---
-        if (isDead) yield break; 
+        if (isDead) yield break;
 
         // Устанавливаем точную позицию и поворот
         transform.position = defaultPosition.position;
         transform.rotation = defaultPosition.rotation;
+
         yield return new WaitForSeconds(defaultDuration);
     }
 
@@ -257,7 +297,7 @@ public class SpiderLogic : MonoBehaviour
     private void ShootWebAtPlayer()
     {
         // --- Проверка на смерть ---
-        if (isDead) return; 
+        if (isDead) return;
 
         if (webPrefab != null && player != null)
         {
@@ -267,9 +307,11 @@ public class SpiderLogic : MonoBehaviour
             // Создаем веб
             GameObject webInstance = Instantiate(webPrefab, spawnPosition, Quaternion.identity);
 
+            // --- Воспроизведение звука выстрела паутины ---
+            PlayWebShootSound();
+
             // Направляем веб в сторону игрока
             Vector3 directionToPlayer = (player.position + new Vector3(0, 1f, 0) - spawnPosition).normalized;
-
             // Добавляем немного разброса для реалистичности (опционально)
             // directionToPlayer += new Vector3(UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f));
 
@@ -293,12 +335,16 @@ public class SpiderLogic : MonoBehaviour
     private void Die()
     {
         // --- Проверка на повторный вызов ---
-        if (isDead) return; 
+        if (isDead) return;
 
         isDead = true; // Устанавливаем флаг смерти
         Debug.Log("открываю дверь");
         animator.SetTrigger("onDie");
         UIManager.Instance.UnlockAbility(1);
+
+        // --- Воспроизведение звука смерти ---
+        PlayDeathSound();
+
         // Сначала включаем дверь
         if (door != null) // Проверка на null - хорошая практика
         {
@@ -320,7 +366,7 @@ public class SpiderLogic : MonoBehaviour
     private void OnTriggerStay(Collider other)
     {
         // --- Проверка на смерть ---
-        if (isDead) return; 
+        if (isDead) return;
 
         Debug.Log(other.tag);
         switch (other.tag)
@@ -354,7 +400,7 @@ public class SpiderLogic : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         // --- Проверка на смерть ---
-        if (isDead) return; 
+        if (isDead) return;
 
         if (other.CompareTag("Wall"))
         {
@@ -362,9 +408,54 @@ public class SpiderLogic : MonoBehaviour
         }
     }
 
-    [System.Obsolete("Только для тестирования"), ContextMenu("dieinsect")]
-    public void TestDie()
+    // --- Новые методы для воспроизведения звуков ---
+    /// <summary>
+    /// Воспроизводит звук смерти.
+    /// </summary>
+    public void PlayDeathSound()
     {
-        Die();
+        if (deathSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(deathSound);
+        }
+        else if (deathSound == null)
+        {
+            Debug.LogWarning("Death sound is not assigned!");
+        }
+    }
+
+    /// <summary>
+    /// Воспроизводит звук выстрела паутины.
+    /// </summary>
+    public void PlayWebShootSound()
+    {
+        if (webShootSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(webShootSound);
+        }
+        else if (webShootSound == null)
+        {
+             Debug.LogWarning("Web shoot sound is not assigned!");
+        }
+    }
+
+    /// <summary>
+    /// Воспроизводит звук движения.
+    /// </summary>
+    public void PlayMovementSound()
+    {
+        if (movementSound != null && audioSource != null)
+        {
+            // Проверяем, играет ли уже этот звук или другой, чтобы избежать наложений
+            // Это простая проверка, можно усложнить при необходимости
+            if (!audioSource.isPlaying || audioSource.clip != movementSound)
+            {
+                 audioSource.PlayOneShot(movementSound);
+            }
+        }
+        else if (movementSound == null)
+        {
+             Debug.LogWarning("Movement sound is not assigned!");
+        }
     }
 }
