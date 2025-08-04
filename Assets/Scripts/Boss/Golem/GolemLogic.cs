@@ -127,10 +127,12 @@ public class GolemBoss : MonoBehaviour
             PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
             if (playerHealth != null)
             {
-                playerHealth.TakeDamage(attackDamage);
+                if (playerHealth.TakeDamage(attackDamage))
+                {
+                    knockDirection.y = 0f; // Настройте по желанию
+                    playerMovementScript.Knockback(knockDirection * 2f);
+                }
             }
-            knockDirection.y = 0f; // Настройте по желанию
-            playerMovementScript.Knockback(knockDirection * 2f);
         }
 
         lastAttackTime = Time.time;

@@ -1442,7 +1442,7 @@ MonoBehaviour:
   AnimationFloorLevel: 0.001
   _Editor_Foldout_Setup_LegsList: 1
   _Editor_EnsureCount: 0
-  _Editor_OnValidateTrigger: 0
+  _Editor_OnValidateTrigger: 1
   _EditorAllowAutoUpdateFeetParams: 1
   _EditorCategory: 1
   _EditorSetupCategory: 3
@@ -4801,9 +4801,10 @@ MonoBehaviour:
   geometry: {fileID: 4042940087976605591}
   rotationSpeed: 10
   webRope: {fileID: 676006773}
-  canShootWeb: 1
+  canShootWeb: 0
   knockbackForce: 10
   knockbackDuration: 0.5
+  webCooldown: 4
 --- !u!114 &1207311967
 MonoBehaviour:
   m_ObjectHideFlags: 0

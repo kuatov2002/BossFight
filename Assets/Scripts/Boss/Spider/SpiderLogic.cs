@@ -333,12 +333,14 @@ public class SpiderLogic : MonoBehaviour
                     // --- Вызываем отбрасывание у игрока ---
                     if (playerMovementScript != null)
                     {
-                        // Вычисляем направление отбрасывания (от паука к игроку)
-                        Vector3 knockDirection = (player.position - transform.position).normalized;
-                        // Можно немного поднять игрока вверх
-                        knockDirection.y = 0.5f; // Настройте по желанию
-                        playerMovementScript.Knockback(knockDirection);
-                        _playerHealth.TakeDamage(10f);
+                        if (_playerHealth.TakeDamage(10f))
+                        {
+                            // Вычисляем направление отбрасывания (от паука к игроку)
+                            Vector3 knockDirection = (player.position - transform.position).normalized;
+                            // Можно немного поднять игрока вверх
+                            knockDirection.y = 0.5f; // Настройте по желанию
+                            playerMovementScript.Knockback(knockDirection);
+                        }
                     }
                 }
                 break;

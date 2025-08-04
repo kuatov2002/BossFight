@@ -3091,9 +3091,10 @@ MonoBehaviour:
   geometry: {fileID: 4042940087976605591}
   rotationSpeed: 10
   webRope: {fileID: 676006773}
-  canShootWeb: 1
+  canShootWeb: 0
   knockbackForce: 10
   knockbackDuration: 0.5
+  webCooldown: 4
 --- !u!114 &1207311967
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3229,7 +3230,7 @@ MonoBehaviour:
   cooldownOverlay: {fileID: 194986366}
   lockOverlay: {fileID: 1494960643}
   isLocked: 1
-  cooldownTime: 5
+  cooldownTime: 4
   activationKey: 117
 --- !u!1 &1261983499
 GameObject:
@@ -5834,6 +5835,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b8d1adda6103234b87b244be0b06e40, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isHaveShield: 0
   maxHealth: 100
 --- !u!114 &919132148080517896
 MonoBehaviour:

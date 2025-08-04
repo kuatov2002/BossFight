@@ -90,15 +90,17 @@ public class Zombie : MonoBehaviour
             // Проверяем, что это игрок (или другой объект, которому можно нанести урон)
             if (hit.CompareTag("Player"))
             {
-                hit.GetComponent<PlayerHealth>().TakeDamage(damage);
-                Vector3 knockDirection = (hit.transform.position - transform.position).normalized;
-                var playerMovementScript = hit.gameObject.GetComponent<PlayerMovement>();
-                // Можно немного поднять игрока вверх
-                knockDirection.y = 0f; // Настройте по желанию
-                playerMovementScript.Knockback(knockDirection*0.4f);
-                // Здесь можно вызвать метод получения урона у игрока
-                // Например: hit.GetComponent<PlayerHealth>().TakeDamage(damage);
-                Debug.Log($"Нанесено {damage} урона игроку");
+                if (hit.GetComponent<PlayerHealth>().TakeDamage(damage))
+                {
+                    Vector3 knockDirection = (hit.transform.position - transform.position).normalized;
+                    var playerMovementScript = hit.gameObject.GetComponent<PlayerMovement>();
+                    // Можно немного поднять игрока вверх
+                    knockDirection.y = 0f; // Настройте по желанию
+                    playerMovementScript.Knockback(knockDirection*0.4f);
+                    // Здесь можно вызвать метод получения урона у игрока
+                    // Например: hit.GetComponent<PlayerHealth>().TakeDamage(damage);
+                    Debug.Log($"Нанесено {damage} урона игроку");
+                }
             }
         }
     }

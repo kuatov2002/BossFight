@@ -191,13 +191,27 @@ public class PlayerMovement : MonoBehaviour
         animator.SetBool("IsDashing", false);
     }
 
+// --- Добавьте это в секцию полей класса вверху, рядом с другими приватными переменными ---
+    private float _lastWebShootTime = 0f; // Время последнего выстрела
+    public float webCooldown = 4.0f; // Длительность кулдауна в секундах (можно сделать SerializeField, если нужна настройка в инспекторе)
+
+// --- Добавьте этот вспомогательный метод для проверки кулдауна ---
+    private bool IsWebCooldownReady()
+    {
+        return (Time.time - _lastWebShootTime) >= webCooldown;
+    }
+
     private void ShootWeb()
     {
-         // --- Не позволяем стрелять паутиной во время отбрасывания ---
-        if (_isKnockedback) return;
-
+        // --- Проверяем и canShootWeb, и кулдаун, и не отбрасывается ли игрок ---
+        if (!canShootWeb || !IsWebCooldownReady() || _isKnockedback)
+        {
+            return; // Если что-то не так, выходим из метода
+        }
+        UIManager.Instance.ActiveAbility(1);
         Vector3 rayOrigin = Camera.main.transform.position;
         Vector3 rayDirection = Camera.main.transform.forward;
+
         if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, 100f))
         {
             Vector3 directionToHit = (hit.point - transform.position).normalized;
@@ -205,14 +219,22 @@ public class PlayerMovement : MonoBehaviour
             float webSpeed = 30f;
             float travelTime = distance / webSpeed;
             travelTime = travelTime > 0.2f ? travelTime : 0.2f;
+
             Vector3 impulse = directionToHit * webSpeed;
             StartDash(impulse);
+
             webRope.RecalculateRope();
+
             GameObject emptyObject = new GameObject("WebTarget");
             emptyObject.transform.position = hit.point;
             webRope.SetEndPoint(emptyObject.transform);
             webRope.ropeLength = distance;
+
             _isWebDashing = true;
+        
+            // --- Обновляем время последнего выстрела ---
+            _lastWebShootTime = Time.time;
+        
             Invoke(nameof(StopWebDash), travelTime);
         }
     }
@@ -260,58 +282,58 @@ public class PlayerMovement : MonoBehaviour
     }
 
     // --- Обновлённый метод Knockback ---
-public void Knockback(Vector3 knockDirection)
-{
-    // Нормализуем направление и устанавливаем его
-    _knockbackDirection = knockDirection.normalized;
-    _isKnockedback = true;
-    StartCoroutine(KnockbackCoroutine());
-}
-
-// --- Обновлённая корутина KnockbackCoroutine ---
-private IEnumerator KnockbackCoroutine()
-{
-    float elapsedTime = 0f;
-    Vector3 knockbackVelocity = _knockbackDirection * knockbackForce; // Вычисляем вектор скорости отбрасывания
-
-    // --- Добавляем силу отбрасывания к текущему движению, а не заменяем его ---
-    _moveDirection += knockbackVelocity;
-
-    while (elapsedTime < knockbackDuration)
+    public void Knockback(Vector3 knockDirection)
     {
-        // --- Применяем движение отбрасывания (гравитация всё ещё действует отдельно) ---
-        // _moveDirection.y обрабатывается ApplyGravity, поэтому мы можем двигать только X и Z,
-        // или доверить CharacterController обработку вертикального перемещения на этом этапе.
-        // Для простоты, двигаем по всем осям, но ApplyGravity в Update по-прежнему будет влиять на _moveDirection.y.
-         _controller.Move(_moveDirection * Time.deltaTime);
-
-        elapsedTime += Time.deltaTime;
-        yield return null;
+        // Нормализуем направление и устанавливаем его
+        _knockbackDirection = knockDirection.normalized;
+        _isKnockedback = true;
+        StartCoroutine(KnockbackCoroutine());
     }
 
-    // --- По окончании отбрасывания постепенно уменьшаем горизонтальную скорость до нуля ---
-    // Сохраняем вертикальную скорость (гравитация должна управлять ей)
-    float originalYVelocity = _moveDirection.y;
-    Vector3 horizontalVelocity = new Vector3(_moveDirection.x, 0, _moveDirection.z);
-    float slowDownDuration = 0.2f; // Длительность затухания
-    float elapsedSlowDownTime = 0f;
-
-    while (elapsedSlowDownTime < slowDownDuration)
+    // --- Обновлённая корутина KnockbackCoroutine ---
+    private IEnumerator KnockbackCoroutine()
     {
-        float t = elapsedSlowDownTime / slowDownDuration;
-        Vector3 newHorizontalVelocity = Vector3.Lerp(horizontalVelocity, Vector3.zero, t);
-        _moveDirection = new Vector3(newHorizontalVelocity.x, originalYVelocity, newHorizontalVelocity.z);
-        // ApplyGravity в Update продолжает работать
-        _controller.Move(_moveDirection * Time.deltaTime);
+        float elapsedTime = 0f;
+        Vector3 knockbackVelocity = _knockbackDirection * knockbackForce; // Вычисляем вектор скорости отбрасывания
 
-        elapsedSlowDownTime += Time.deltaTime;
-        yield return null;
+        // --- Добавляем силу отбрасывания к текущему движению, а не заменяем его ---
+        _moveDirection += knockbackVelocity;
+
+        while (elapsedTime < knockbackDuration)
+        {
+            // --- Применяем движение отбрасывания (гравитация всё ещё действует отдельно) ---
+            // _moveDirection.y обрабатывается ApplyGravity, поэтому мы можем двигать только X и Z,
+            // или доверить CharacterController обработку вертикального перемещения на этом этапе.
+            // Для простоты, двигаем по всем осям, но ApplyGravity в Update по-прежнему будет влиять на _moveDirection.y.
+            _controller.Move(_moveDirection * Time.deltaTime);
+
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        // --- По окончании отбрасывания постепенно уменьшаем горизонтальную скорость до нуля ---
+        // Сохраняем вертикальную скорость (гравитация должна управлять ей)
+        float originalYVelocity = _moveDirection.y;
+        Vector3 horizontalVelocity = new Vector3(_moveDirection.x, 0, _moveDirection.z);
+        float slowDownDuration = 0.2f; // Длительность затухания
+        float elapsedSlowDownTime = 0f;
+
+        while (elapsedSlowDownTime < slowDownDuration)
+        {
+            float t = elapsedSlowDownTime / slowDownDuration;
+            Vector3 newHorizontalVelocity = Vector3.Lerp(horizontalVelocity, Vector3.zero, t);
+            _moveDirection = new Vector3(newHorizontalVelocity.x, originalYVelocity, newHorizontalVelocity.z);
+            // ApplyGravity в Update продолжает работать
+            _controller.Move(_moveDirection * Time.deltaTime);
+
+            elapsedSlowDownTime += Time.deltaTime;
+            yield return null;
+        }
+
+        // --- Убедимся, что горизонтальная скорость обнулена, а вертикальная остается под гравитацией ---
+        _moveDirection = new Vector3(0, _moveDirection.y, 0); // Обнуляем только горизонтальную составляющую
+        _isKnockedback = false;
     }
-
-    // --- Убедимся, что горизонтальная скорость обнулена, а вертикальная остается под гравитацией ---
-    _moveDirection = new Vector3(0, _moveDirection.y, 0); // Обнуляем только горизонтальную составляющую
-    _isKnockedback = false;
-}
 
     public bool IsGrounded() => _controller.isGrounded;
     public Vector3 GetMoveDirection() => _moveDirection;
