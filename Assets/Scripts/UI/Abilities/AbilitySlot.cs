@@ -13,7 +13,6 @@ public class AbilitySlot : MonoBehaviour
     
     [Header("Ability Settings")]
     public float cooldownTime = 5f;
-    public KeyCode activationKey = KeyCode.Space;
     
     private bool isOnCooldown = false;
     private float currentCooldown;
@@ -26,12 +25,6 @@ public class AbilitySlot : MonoBehaviour
     
     void Update()
     {
-        // Проверка активации способности
-        if (Input.GetKeyDown(activationKey) && !isOnCooldown)
-        {
-            ActivateAbility();
-        }
-        
         // Обновление кулдауна
         if (isOnCooldown)
         {

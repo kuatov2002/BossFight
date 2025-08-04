@@ -33,6 +33,7 @@ public class Web : MonoBehaviour
                     Debug.Log($"Игрок столкнулся с высокой скоростью: {speed:F2} м/с");
                 }
             }
+            Destroy(gameObject);
         }
     }
 }
