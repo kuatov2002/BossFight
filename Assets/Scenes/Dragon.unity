@@ -1260,7 +1260,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04ceaa11fc7eed245801bfd1544cb2fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 160
+  maxHealth: 120
   bossName: "\u0414\u0440\u0430\u043A\u043E\u0448\u0430"
 --- !u!1 &206106228
 GameObject:
@@ -2482,7 +2482,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 22, y: -23.73, z: -20}
-  m_LocalScale: {x: 60, y: 1, z: 60}
+  m_LocalScale: {x: 153.71, y: 1, z: 185.4}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 417864461}
@@ -6726,6 +6726,9 @@ MonoBehaviour:
   landingWaitTime: 6
   flightSpeed: 20
   fireDelay: 0.4
+  deathSound: {fileID: 0}
+  fireBreathSound: {fileID: 0}
+  audioSource: {fileID: 0}
   door: {fileID: 1590065835}
   animator: {fileID: 2092365556}
 --- !u!95 &2092365556 stripped

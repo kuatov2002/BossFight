@@ -62,6 +62,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     void Die()
     {
         Debug.Log("Игрок погиб!");
+        UIManager.Instance.RestartLevel();
         // Здесь логика смерти игрока
     }
 

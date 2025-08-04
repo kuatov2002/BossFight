@@ -276,7 +276,7 @@ public class PlayerMovement : MonoBehaviour
         {
             Vector3 directionToHit = (hit.point - transform.position).normalized;
             float distance = Vector3.Distance(hit.point, transform.position);
-            float webSpeed = 30f;
+            float webSpeed = 40f;
             float travelTime = distance / webSpeed;
             travelTime = travelTime > 0.2f ? travelTime : 0.2f;
             Vector3 impulse = directionToHit * webSpeed;

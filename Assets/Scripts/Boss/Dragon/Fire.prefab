@@ -123,7 +123,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   speed: 10
   lifetime: 3.5
-  damage: 10
+  damage: 5
   targetLayers:
     serializedVersion: 2
     m_Bits: 4294967295
+  knockForce: 0

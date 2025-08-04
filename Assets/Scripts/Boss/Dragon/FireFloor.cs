@@ -10,7 +10,15 @@ public class FireFloor : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Player"))
         {
-            health.TakeDamage(damage * Time.deltaTime);
+            UIManager.Instance.RestartLevel();
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            UIManager.Instance.RestartLevel();
         }
     }
 }
