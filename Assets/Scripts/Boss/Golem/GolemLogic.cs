@@ -227,6 +227,7 @@ public class GolemBoss : MonoBehaviour
         door.gameObject.SetActive(true);
         warning.SetActive(false);
         isDead = true;
+        UIManager.Instance.UnlockAbility(0);
         PlayDeathAnimation();
 
         // Останавливаем все корутины, если нужно

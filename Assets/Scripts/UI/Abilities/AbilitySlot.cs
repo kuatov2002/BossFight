@@ -8,6 +8,8 @@ public class AbilitySlot : MonoBehaviour
     public Image abilityIcon;
     public Image cooldownOverlay;
     public Image lockOverlay;
+
+    public bool isLocked = true;
     
     [Header("Ability Settings")]
     public float cooldownTime = 5f;
@@ -40,6 +42,7 @@ public class AbilitySlot : MonoBehaviour
     public void Unlock()
     {
         lockOverlay.gameObject.SetActive(false);
+        isLocked = false;
     }
     public void ActivateAbility()
     {

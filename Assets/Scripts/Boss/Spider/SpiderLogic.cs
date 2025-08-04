@@ -298,7 +298,7 @@ public class SpiderLogic : MonoBehaviour
         isDead = true; // Устанавливаем флаг смерти
         Debug.Log("открываю дверь");
         animator.SetTrigger("onDie");
-
+        UIManager.Instance.UnlockAbility(1);
         // Сначала включаем дверь
         if (door != null) // Проверка на null - хорошая практика
         {

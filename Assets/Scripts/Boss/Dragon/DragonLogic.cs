@@ -300,6 +300,7 @@ public class DragonLogic : MonoBehaviour
         Debug.Log("Дракон мертв, открываю дверь");
 
         BossActions.onBossDied -= Die; // Отписываемся от события
+        UIManager.Instance.UnlockAbility(2);
         UIManager.Instance.StartDialogue(deathDialogue);
         if (animator != null)
         {

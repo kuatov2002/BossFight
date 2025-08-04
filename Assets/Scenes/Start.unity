@@ -241,7 +241,7 @@ MonoBehaviour:
   bossHp: {fileID: 600095816}
   playerHP: {fileID: 250286504}
   dialogueManager: {fileID: 513742522}
-  abilityManager: {fileID: 0}
+  abilityManager: {fileID: 78671416}
 --- !u!1 &73258911
 GameObject:
   m_ObjectHideFlags: 0
@@ -1207,6 +1207,7 @@ MonoBehaviour:
   abilityIcon: {fileID: 466027766}
   cooldownOverlay: {fileID: 457774609}
   lockOverlay: {fileID: 757700513}
+  isLocked: 1
   cooldownTime: 5
   activationKey: 121
 --- !u!114 &405065146
@@ -1908,6 +1909,7 @@ MonoBehaviour:
   abilityIcon: {fileID: 330463119}
   cooldownOverlay: {fileID: 956426985}
   lockOverlay: {fileID: 1907314489}
+  isLocked: 1
   cooldownTime: 5
   activationKey: 105
 --- !u!114 &653570692
@@ -3226,6 +3228,7 @@ MonoBehaviour:
   abilityIcon: {fileID: 1924283857}
   cooldownOverlay: {fileID: 194986366}
   lockOverlay: {fileID: 1494960643}
+  isLocked: 1
   cooldownTime: 5
   activationKey: 117
 --- !u!1 &1261983499
