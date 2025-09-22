@@ -1,0 +1,461 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class SpiderLogic : MonoBehaviour
+{
+    public enum AttackType
+    {
+        Spin,
+        WallAndShot,
+        JustAttack
+    }
+
+    public Transform player;
+    public Animator animator;
+    public GameObject door;
+    public float moveSpeed = 5f; // Скорость движения к игроку
+    public float rotationSpeed = 180f; // Скорость вращения
+    public float attackCooldown = 2f;
+
+    // --- Новые поля для плавного перемещения ---
+    public List<Transform> wayPoints = new List<Transform>(); // Список точек для перемещения
+    public Transform defaultPosition;
+    public float smoothMoveSpeed = 30f; // Скорость плавного перемещения
+    public float smoothRotationSpeed = 50f; // Скорость плавного поворота
+
+    // --- Поля для звуков ---
+    [Header("Звуки")]
+    public AudioClip deathSound;         // Звук смерти
+    public AudioClip webShootSound;      // Звук выстрела паутины
+    public AudioClip movementSound;      // Звук движения
+    [HideInInspector] public AudioSource audioSource; // Источник звука (HideInInspector, чтобы не засорять инспектор, если не нужно)
+
+    public GameObject webPrefab;
+    public Transform shootPoint; // Точка, из которой будет производиться выстрел
+    public float returnToDefaultTime = 12f; // Время в секундах до возврата на позицию по умолчанию
+    public float defaultDuration = 4f;
+    public string[] spiderDialogue;
+
+    // --- Ссылка на скрипт игрока ---
+    private PlayerMovement playerMovementScript;
+    private PlayerHealth _playerHealth;
+    private float _lastAttack;
+    private bool _hitWall = false; // Флаг столкновения со стеной
+    private int _currentWayPointIndex = 0; // Индекс текущей точки назначения
+    private bool _isAtWayPoint = false; // Флаг достижения точки
+    private bool _isReturningToDefault = false; // Флаг возврата на позицию по умолчанию
+    private Coroutine _moveCoroutine; // Ссылка на основную корутину
+    private Coroutine _returnCoroutine; // Ссылка на корутину возврата
+    private bool isFirstAttack = true;
+
+    // --- Новое поле для отслеживания состояния смерти ---
+    private bool isDead = false; // Флаг, указывающий, мертв ли босс
+
+    void Start()
+    {
+        UIManager.Instance.StartDialogue(spiderDialogue);
+
+        BossActions.onBossDied -= Die; // Сначала отписываемся (на всякий случай)
+        BossActions.onBossDied += Die;  // Потом подписываемся
+        Debug.Log("SpiderLogic подписался на событие onBossDied");
+
+        if (animator == null)
+            animator = GetComponent<Animator>();
+
+        if (player == null)
+            player = GameObject.FindGameObjectWithTag("Player").transform;
+
+        // --- Получаем ссылку на скрипт игрока ---
+        playerMovementScript = player.GetComponent<PlayerMovement>();
+        if (playerMovementScript == null)
+        {
+            Debug.LogError("PlayerMovement script not found on the player object!");
+        }
+
+        _playerHealth = player.GetComponent<PlayerHealth>();
+
+        // --- Настройка AudioSource ---
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+
+        //StartCoroutine(MoveTowardsPlayerRoutine());
+        _moveCoroutine = StartCoroutine(SmoothMoveToWayPointWithShooting(0));
+    }
+
+    private IEnumerator MoveTowardsPlayerRoutine(float duration)
+    {
+        float startTime = Time.time;
+        while (Time.time - startTime < duration) // Бесконечный цикл движения
+        {
+            // --- Проверка на смерть ---
+            if (isDead) yield break;
+
+            // Получаем текущее направление к игроку
+            Vector3 directionToPlayer = (player.position - transform.position).normalized;
+            directionToPlayer.y = 0; // Обнуляем Y чтобы не летать вверх/вниз
+
+            // Запоминаем это направление
+            Vector3 moveDirection = directionToPlayer;
+
+            // Сброс флага столкновения
+            _hitWall = false;
+
+            // Движение и вращение в течение 3 секунд или до столкновения со стеной
+            float moveDuration = 3f;
+            float elapsed = 0f;
+            while (elapsed < moveDuration && !_hitWall)
+            {
+                // --- Проверка на смерть ---
+                if (isDead) yield break;
+
+                // Движение в запомненном направлении
+                transform.position += moveDirection * moveSpeed * Time.deltaTime;
+                transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime, Space.Self);
+
+                // --- Воспроизведение звука движения ---
+                // Пример: воспроизводить звук каждые 0.5 секунды, если он не играет
+                // Это можно улучшить с помощью InvokeRepeating или проверки расстояния
+                if (movementSound != null && audioSource != null && !audioSource.isPlaying)
+                {
+                     // Простой способ: воспроизводим при каждом кадре движения (может быть часто)
+                     // PlayMovementSound();
+                     // Более точный способ: воспроизводим по таймеру или событию
+                     // Пока оставим простой вариант или закомментируем, если нужно вызывать иначе
+                }
+
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            // После 3 секунд или столкновения со стеной цикл повторяется - снова получаем новое направление
+        }
+
+        // --- Проверка на смерть перед запуском следующей корутины ---
+        if (!isDead)
+            StartCoroutine(SmoothMoveToWayPointWithShooting(0));
+    }
+
+    /// <summary>
+    /// Плавное перемещение к точке с заданным индексом с последующим стрельбой
+    /// </summary>
+    /// <param name="wayPointIndex">Индекс точки в списке wayPoints</param>
+    public IEnumerator SmoothMoveToWayPointWithShooting(int wayPointIndex)
+    {
+        yield return new WaitForSeconds(isFirstAttack ? 2f : defaultDuration);
+        isFirstAttack = false;
+        while (true) // Бесконечный цикл
+        {
+            // --- Проверка на смерть ---
+            if (isDead) yield break;
+
+            if (wayPoints.Count == 0)
+            {
+                Debug.LogWarning("WayPoints list is empty!");
+                yield return new WaitForSeconds(1f);
+                continue;
+            }
+
+            if (wayPointIndex < 0 || wayPointIndex >= wayPoints.Count)
+            {
+                Debug.LogWarning($"WayPoint index {wayPointIndex} is out of range!");
+                wayPointIndex = 0;
+            }
+
+            Transform targetWayPoint = wayPoints[wayPointIndex];
+            _currentWayPointIndex = wayPointIndex;
+
+            // Плавное перемещение и поворот
+            while (Vector3.Distance(transform.position, targetWayPoint.position) > 0.1f && !_isReturningToDefault)
+            {
+                // --- Проверка на смерть ---
+                if (isDead) yield break;
+
+                // Плавный поворот к ориентации точки
+                Vector3 directionToTarget = (targetWayPoint.position - transform.position).normalized;
+                Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
+
+                // Плавное перемещение к точке
+                transform.position = Vector3.MoveTowards(transform.position, targetWayPoint.position, smoothMoveSpeed * Time.deltaTime);
+
+                // --- Воспроизведение звука движения ---
+                // Аналогично как в MoveTowardsPlayerRoutine, можно вызывать здесь
+                // PlayMovementSound(); // Пример вызова
+
+                yield return null;
+            }
+
+            // --- Проверка на смерть ---
+            if (isDead) yield break;
+
+            if (_isReturningToDefault) break;
+
+            // Когда достигли точки, копируем её точный поворот
+            transform.rotation = targetWayPoint.rotation;
+
+            // Устанавливаем флаг достижения точки
+            _isAtWayPoint = true;
+
+            // Стреляем в игрока
+            ShootWebAtPlayer();
+
+            // Запускаем корутину возврата через 12 секунд
+            if (_returnCoroutine == null)
+            {
+                _returnCoroutine = StartCoroutine(ReturnToDefaultPositionAfterDelay());
+            }
+
+            // Ждем немного перед следующим перемещением
+            yield return new WaitForSeconds(1f);
+
+            // Переход к следующей точке (циклически)
+            wayPointIndex = (wayPointIndex + 1) % wayPoints.Count;
+            _isAtWayPoint = false;
+        }
+    }
+
+    /// <summary>
+    /// Возврат на позицию по умолчанию через заданное время
+    /// </summary>
+    private IEnumerator ReturnToDefaultPositionAfterDelay()
+    {
+        yield return new WaitForSeconds(returnToDefaultTime);
+
+        // --- Проверка на смерть ---
+        if (isDead) yield break;
+
+        if (defaultPosition != null && !_isReturningToDefault)
+        {
+            _isReturningToDefault = true;
+
+            // Останавливаем основную корутину движения
+            if (_moveCoroutine != null)
+            {
+                StopCoroutine(_moveCoroutine);
+            }
+
+            // Плавное возвращение на позицию по умолчанию
+            yield return StartCoroutine(SmoothMoveToDefaultPosition());
+
+            // --- Проверка на смерть ---
+            if (isDead) yield break;
+
+            // После возврата продолжаем движение по точкам
+            _isReturningToDefault = false;
+
+            // --- Проверка на смерть перед запуском следующей корутины ---
+            if (!isDead)
+                yield return StartCoroutine(MoveTowardsPlayerRoutine(returnToDefaultTime));
+        }
+        _returnCoroutine = null;
+    }
+
+    /// <summary>
+    /// Плавное перемещение на позицию по умолчанию
+    /// </summary>
+    private IEnumerator SmoothMoveToDefaultPosition()
+    {
+        if (defaultPosition == null) yield break;
+
+        while (Vector3.Distance(transform.position, defaultPosition.position) > 0.1f)
+        {
+            // --- Проверка на смерть ---
+            if (isDead) yield break;
+
+            // Плавный поворот к ориентации позиции по умолчанию
+            Vector3 directionToTarget = (defaultPosition.position - transform.position).normalized;
+            Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, smoothRotationSpeed * Time.deltaTime);
+
+            // Плавное перемещение к позиции по умолчанию
+            transform.position = Vector3.MoveTowards(transform.position, defaultPosition.position, smoothMoveSpeed * Time.deltaTime);
+
+            // --- Воспроизведение звука движения ---
+            // PlayMovementSound(); // Пример вызова
+
+            yield return null;
+        }
+
+        // --- Проверка на смерть ---
+        if (isDead) yield break;
+
+        // Устанавливаем точную позицию и поворот
+        transform.position = defaultPosition.position;
+        transform.rotation = defaultPosition.rotation;
+
+        yield return new WaitForSeconds(defaultDuration);
+    }
+
+    /// <summary>
+    /// Стрельба вебом в направлении игрока
+    /// </summary>
+    private void ShootWebAtPlayer()
+    {
+        // --- Проверка на смерть ---
+        if (isDead) return;
+
+        if (webPrefab != null && player != null)
+        {
+            // Определяем точку выстрела (если не задана, используем позицию паука)
+            Vector3 spawnPosition = shootPoint != null ? shootPoint.position : transform.position;
+
+            // Создаем веб
+            GameObject webInstance = Instantiate(webPrefab, spawnPosition, Quaternion.identity);
+
+            // --- Воспроизведение звука выстрела паутины ---
+            PlayWebShootSound();
+
+            // Направляем веб в сторону игрока
+            Vector3 directionToPlayer = (player.position + new Vector3(0, 1f, 0) - spawnPosition).normalized;
+            // Добавляем немного разброса для реалистичности (опционально)
+            // directionToPlayer += new Vector3(UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f), UnityEngine.Random.Range(-0.1f, 0.1f));
+
+            // Получаем Rigidbody веба и применяем силу
+            Rigidbody webRb = webInstance.GetComponent<Rigidbody>();
+            if (webRb != null)
+            {
+                webRb.linearVelocity = directionToPlayer * 40f; // Скорость веба
+            }
+            else
+            {
+                Debug.LogWarning("Web prefab doesn't have Rigidbody component!");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Web prefab or player is not assigned!");
+        }
+    }
+
+    private void Die()
+    {
+        // --- Проверка на повторный вызов ---
+        if (isDead) return;
+
+        isDead = true; // Устанавливаем флаг смерти
+        Debug.Log("открываю дверь");
+        animator.SetTrigger("onDie");
+        UIManager.Instance.UnlockAbility(1);
+
+        // --- Воспроизведение звука смерти ---
+        PlayDeathSound();
+
+        // Сначала включаем дверь
+        if (door != null) // Проверка на null - хорошая практика
+        {
+            door.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning("Ссылка на дверь (door) не назначена в инспекторе!");
+        }
+
+        // Отписываемся от события
+        BossActions.onBossDied -= Die;
+
+        // Останавливаем все корутины
+        StopAllCoroutines();
+    }
+
+    // --- Обновленный OnTriggerStay ---
+    private void OnTriggerStay(Collider other)
+    {
+        // --- Проверка на смерть ---
+        if (isDead) return;
+
+        Debug.Log(other.tag);
+        switch (other.tag)
+        {
+            case "Player":
+                if (Time.time - _lastAttack > attackCooldown)
+                {
+                    _lastAttack = Time.time;
+                    Debug.Log("больно в ноге");
+                    // --- Вызываем отбрасывание у игрока ---
+                    if (playerMovementScript != null)
+                    {
+                        if (_playerHealth.TakeDamage(10f))
+                        {
+                            // Вычисляем направление отбрасывания (от паука к игроку)
+                            Vector3 knockDirection = (player.position - transform.position).normalized;
+                            // Можно немного поднять игрока вверх
+                            knockDirection.y = 0.5f; // Настройте по желанию
+                            playerMovementScript.Knockback(knockDirection);
+                        }
+                    }
+                }
+                break;
+            case "Wall":
+                _hitWall = true; // Устанавливаем флаг столкновения со стеной
+                break;
+        }
+    }
+
+    // --- Обновленный OnTriggerEnter ---
+    private void OnTriggerEnter(Collider other)
+    {
+        // --- Проверка на смерть ---
+        if (isDead) return;
+
+        if (other.CompareTag("Wall"))
+        {
+            _hitWall = true; // Также проверяем столкновение при входе в триггер
+        }
+    }
+
+    // --- Новые методы для воспроизведения звуков ---
+    /// <summary>
+    /// Воспроизводит звук смерти.
+    /// </summary>
+    public void PlayDeathSound()
+    {
+        if (deathSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(deathSound);
+        }
+        else if (deathSound == null)
+        {
+            Debug.LogWarning("Death sound is not assigned!");
+        }
+    }
+
+    /// <summary>
+    /// Воспроизводит звук выстрела паутины.
+    /// </summary>
+    public void PlayWebShootSound()
+    {
+        if (webShootSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(webShootSound);
+        }
+        else if (webShootSound == null)
+        {
+             Debug.LogWarning("Web shoot sound is not assigned!");
+        }
+    }
+
+    /// <summary>
+    /// Воспроизводит звук движения.
+    /// </summary>
+    public void PlayMovementSound()
+    {
+        if (movementSound != null && audioSource != null)
+        {
+            // Проверяем, играет ли уже этот звук или другой, чтобы избежать наложений
+            // Это простая проверка, можно усложнить при необходимости
+            if (!audioSource.isPlaying || audioSource.clip != movementSound)
+            {
+                 audioSource.PlayOneShot(movementSound);
+            }
+        }
+        else if (movementSound == null)
+        {
+             Debug.LogWarning("Movement sound is not assigned!");
+        }
+    }
+}

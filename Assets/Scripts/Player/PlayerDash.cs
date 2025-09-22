@@ -4,7 +4,7 @@ using UnityEngine;
 public class PlayerDash : MonoBehaviour
 {
     [Header("Dash Settings")]
-    public float dashForce = 15f;
+    public float dashForce = 4f;
     public float dashDuration = 0.2f;
     public float dashCooldown = 1f;
 
@@ -37,15 +37,27 @@ public class PlayerDash : MonoBehaviour
         _dashTimer = dashDuration;
         _dashCooldownTimer = dashCooldown;
 
-        // Определяем направление дэша
+        // Определяем направление дэша с учетом поворота игрока
         if (inputDirection != Vector3.zero)
         {
-            _dashDirection = inputDirection;
+            // Используем направление камеры для корректного дэша
+            Vector3 forward = Camera.main.transform.forward;
+            Vector3 right = Camera.main.transform.right;
+
+            forward.y = 0f;
+            right.y = 0f;
+            forward.Normalize();
+            right.Normalize();
+
+            // Преобразуем input в мировые координаты с учетом направления камеры
+            _dashDirection = (forward * inputDirection.z + right * inputDirection.x).normalized;
         }
         else
         {
-            // Если нет направления, используем направление камеры
-            _dashDirection = Camera.main.transform.forward;
+            // Если нет направления, используем направление взгляда игрока
+            Vector3 forward = Camera.main.transform.forward;
+            forward.y = 0f;
+            _dashDirection = forward.normalized;
         }
 
         _dashDirection.y = 0;
